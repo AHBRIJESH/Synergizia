@@ -1,4 +1,3 @@
-
 import React from 'react';
 import AnimationWrapper from './AnimationWrapper';
 import { cn } from '@/lib/utils';
@@ -53,8 +52,10 @@ const ScheduleSection = () => {
                   ></div>
                   
                   {/* Time */}
-                  <div className="w-32 text-right pr-8 pt-1">
-                    <span className="text-sm font-semibold text-gray-600">{item.time}</span>
+                  <div className="w-40 text-right pr-8 pt-1">
+                    <span className="text-sm font-bold text-gray-800 bg-gray-100 px-3 py-1 rounded-full">
+                      {item.time}
+                    </span>
                   </div>
                   
                   {/* Event details */}

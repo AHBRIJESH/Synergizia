@@ -7,8 +7,37 @@ import AnimationWrapper from './AnimationWrapper';
 const HeroSection = () => {
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-r from-synergizia-purple-dark via-synergizia-purple to-synergizia-blue z-0"></div>
+      {/* Background with electrical and computer science theme */}
+      <div className="absolute inset-0 bg-gradient-to-r from-red-800 to-red-600 z-0">
+        {/* Circuit pattern overlay */}
+        <div className="absolute inset-0 opacity-10">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute bg-white"
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                width: `${Math.random() * 100 + 50}px`,
+                height: '1px',
+                transform: `rotate(${Math.random() * 360}deg)`
+              }}
+            ></div>
+          ))}
+          {[...Array(15)].map((_, i) => (
+            <div
+              key={`circle-${i}`}
+              className="absolute rounded-full border border-white/20"
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                width: `${Math.random() * 40 + 10}px`,
+                height: `${Math.random() * 40 + 10}px`,
+              }}
+            ></div>
+          ))}
+        </div>
+      </div>
       
       {/* Animated particles */}
       <div className="absolute inset-0 z-10">
@@ -36,7 +65,7 @@ const HeroSection = () => {
               <span className="text-synergizia-gold">25</span>
             </h1>
             <h2 className="text-xl md:text-2xl font-light mb-6">
-              A National Level Technical Symposium
+              Technical Symposium
             </h2>
             <p className="text-lg mb-8">
               Hosted by Rajiv Gandhi College of Engineering
