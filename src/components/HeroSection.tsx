@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { scrollToSection } from '@/lib/scroll';
 import AnimationWrapper from './AnimationWrapper';
+import { Compass } from 'lucide-react';
 
 const HeroSection = () => {
   return (
@@ -92,8 +93,9 @@ const HeroSection = () => {
                 variant="outline" 
                 size="lg" 
                 onClick={() => scrollToSection('events')}
-                className="border-white text-white hover:bg-white/10"
+                className="border-white text-white hover:bg-white/20 hover:border-synergizia-gold transition-all duration-300 group"
               >
+                <Compass className="mr-2 group-hover:text-synergizia-gold transition-colors" />
                 Explore Events
               </Button>
             </div>
