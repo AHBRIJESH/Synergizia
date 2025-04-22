@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { scrollToSection } from '@/lib/scroll';
@@ -57,10 +56,10 @@ const HeroSection = () => {
         ))}
       </div>
       
-      <div className="container mx-auto px-4 z-20 text-center">
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          <AnimationWrapper animation="fade-in" className="text-left text-white">
-            <h1 className="text-4xl md:text-6xl font-extrabold mb-4">
+      <div className="container mx-auto px-4 z-20">
+        <div className="flex flex-col items-center justify-center text-center min-h-screen">
+          <AnimationWrapper animation="fade-in" className="text-white max-w-2xl">
+            <h1 className="text-6xl md:text-7xl font-extrabold mb-4 text-center">
               <span className="text-white">SYNERGIZIA</span>
               <span className="text-synergizia-gold">25</span>
             </h1>
@@ -72,7 +71,7 @@ const HeroSection = () => {
               <br />
               <span className="text-synergizia-gold font-semibold">May 15, 2025</span>
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex justify-center gap-4">
               <Button 
                 size="lg" 
                 onClick={() => scrollToSection('register')}
@@ -88,22 +87,6 @@ const HeroSection = () => {
               >
                 Explore Events
               </Button>
-            </div>
-          </AnimationWrapper>
-          
-          <AnimationWrapper 
-            animation="float" 
-            className="flex justify-center items-center"
-            delay={400}
-          >
-            <div className="relative w-full max-w-md aspect-square">
-              <div className="absolute inset-0 bg-synergizia-gold/20 rounded-full animate-spin-slow"></div>
-              <div className="absolute inset-4 bg-gradient-to-br from-synergizia-purple to-synergizia-blue rounded-full flex items-center justify-center">
-                <div className="text-white text-center">
-                  <div className="text-8xl font-black">S25</div>
-                  <div className="text-xl uppercase tracking-wider mt-2">Symposium</div>
-                </div>
-              </div>
             </div>
           </AnimationWrapper>
         </div>
