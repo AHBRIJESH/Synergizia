@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,8 @@ const RegistrationForm = () => {
     handleProceedToPayment,
     completeRegistration,
     setStep,
-    setIsSubmitting
+    setIsSubmitting,
+    initialForm
   } = useRegistration();
 
   const isEventDisabled = (eventTitle: string): boolean => {
@@ -76,8 +78,10 @@ const RegistrationForm = () => {
 
   const handleEventChange = (eventTitle: string, checked: boolean) => {
     if (checked) {
+      // Pass the array directly as it's now handled in the hook
       handleSelectChange('selectedEvents', [...formData.selectedEvents, eventTitle]);
     } else {
+      // Pass the array directly as it's now handled in the hook
       handleSelectChange('selectedEvents', 
         formData.selectedEvents.filter(event => event !== eventTitle)
       );

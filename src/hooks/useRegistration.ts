@@ -56,7 +56,8 @@ export const useRegistration = () => {
     setRegistrationError(null);
   };
 
-  const handleSelectChange = (name: string, value: string) => {
+  // Updated to handle both string and string[] values
+  const handleSelectChange = (name: string, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     setRegistrationError(null);
   };
@@ -212,6 +213,7 @@ export const useRegistration = () => {
     handleProceedToPayment,
     completeRegistration,
     setStep,
-    setIsSubmitting
+    setIsSubmitting,
+    initialForm // Export initialForm for use in RegistrationForm
   };
 };

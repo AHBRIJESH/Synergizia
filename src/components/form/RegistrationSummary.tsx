@@ -3,7 +3,7 @@ import React from 'react';
 
 interface RegistrationSummaryProps {
   email: string;
-  selectedEvents: string[]; // This is already an array
+  selectedEvents: string[];
   lunchOption: string;
   calculateTotalAmount: () => number;
 }
