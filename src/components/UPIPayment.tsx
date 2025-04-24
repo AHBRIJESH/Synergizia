@@ -12,7 +12,7 @@ import { Loader } from "lucide-react";
 interface UPIPaymentProps {
   amount: number;
   registrationId: string;
-  email: string; // Add email to the props
+  email: string; // Email is required for confirmation
   onPaymentComplete: (success: boolean) => void;
 }
 
@@ -41,7 +41,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, registrationId, email, 
       }
 
       toast.success("Payment recorded successfully!", {
-        description: `Your payment is being verified. A confirmation will be sent to ${email} shortly.`
+        description: `Your payment is being verified. A confirmation email will be sent to ${email} shortly with all details.`
       });
 
       onPaymentComplete(true);
@@ -101,6 +101,10 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, registrationId, email, 
               'Verify Payment'
             )}
           </Button>
+          
+          <p className="text-sm text-gray-500 mt-2">
+            After verification, a confirmation email with all details will be sent to {email}
+          </p>
         </div>
       </CardContent>
     </Card>

@@ -54,13 +54,16 @@ export async function verifyUPIPayment(
   // For development/testing, simulate successful verification
   if (!supabaseUrl || !supabaseAnonKey) {
     console.log('Using mocked UPI verification due to missing Supabase credentials');
+    console.log(`Would send email to: ${email}`);
+    
     return new Promise(resolve => {
       setTimeout(() => {
         resolve({
           data: { 
             success: true, 
             status: 'Verified',
-            userEmail: email || 'user@example.com' // Include email in the mock response
+            userEmail: email || 'user@example.com', // Include email in the mock response
+            emailSent: true // Simulate that an email was sent
           },
           error: null
         });
