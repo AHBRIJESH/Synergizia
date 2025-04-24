@@ -1,8 +1,7 @@
-
-import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { scrollToSection } from '@/lib/scroll';
+import React, { useState, useEffect } from "react";
+import { Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { scrollToSection } from "@/lib/scroll";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -17,16 +16,16 @@ const Navbar = () => {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const navLinks = [
-    { name: 'Home', id: 'home' },
-    { name: 'About', id: 'about' },
-    { name: 'Events', id: 'events' },
-    { name: 'Schedule', id: 'schedule' },
-    { name: 'Register', id: 'register' },
+    { name: "Home", id: "home" },
+    { name: "About", id: "about" },
+    { name: "Events", id: "events" },
+    { name: "Schedule", id: "schedule" },
+    { name: "Register", id: "register" },
   ];
 
   const handleNavClick = (id: string) => {
@@ -37,14 +36,16 @@ const Navbar = () => {
   return (
     <header
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-white/95 shadow-md backdrop-blur-sm py-2' 
-          : 'bg-transparent py-4'
+        isScrolled
+          ? "bg-white/95 shadow-md backdrop-blur-sm py-2"
+          : "bg-transparent py-4"
       }`}
     >
       <div className="container mx-auto px-4 flex justify-between items-center">
         <div className="flex items-center">
-          <span className="text-xl font-bold text-synergizia-purple">SYNERGIZIA<span className="text-synergizia-gold">25</span></span>
+          <span className="text-xl font-bold text-synergizia-purple">
+            SYNERGIZIA<span className="text-synergizia-gold">'25</span>
+          </span>
         </div>
 
         {/* Desktop Navigation */}
@@ -54,7 +55,7 @@ const Navbar = () => {
               key={link.id}
               onClick={() => handleNavClick(link.id)}
               className={`font-medium transition-colors hover:text-synergizia-purple ${
-                isScrolled ? 'text-gray-800' : 'text-white'
+                isScrolled ? "text-gray-800" : "text-white"
               }`}
             >
               {link.name}
@@ -68,7 +69,9 @@ const Navbar = () => {
             variant="ghost"
             size="icon"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`text-2xl ${isScrolled ? 'text-gray-800' : 'text-white'}`}
+            className={`text-2xl ${
+              isScrolled ? "text-gray-800" : "text-white"
+            }`}
           >
             {mobileMenuOpen ? <X /> : <Menu />}
           </Button>

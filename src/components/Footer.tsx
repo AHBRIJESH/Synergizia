@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { scrollToSection } from '@/lib/scroll';
-import { Mail, Phone, MapPin, ArrowRight } from 'lucide-react';
+import React from "react";
+import { scrollToSection } from "@/lib/scroll";
+import { Mail, Phone, MapPin, ArrowRight } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -10,15 +9,19 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* About */}
           <div>
-            <h3 className="text-xl font-bold mb-4">SYNERGIZIA<span className="text-synergizia-gold">25</span></h3>
+            <h3 className="text-xl font-bold mb-4">
+              SYNERGIZIA<span className="text-synergizia-gold">'25</span>
+            </h3>
             <p className="text-gray-400 mb-4">
-              A National Level Technical Symposium hosted by Rajiv Gandhi College of Engineering bringing together the brightest minds for a day of learning and competition.
+              A National Level Technical Symposium hosted by Rajiv Gandhi
+              College of Engineering bringing together the brightest minds for a
+              day of learning and competition.
             </p>
             <div className="flex space-x-4">
-              {['#', '#', '#'].map((link, i) => (
-                <a 
+              {["#", "#", "#"].map((link, i) => (
+                <a
                   key={i}
-                  href={link} 
+                  href={link}
                   className="bg-gray-800 hover:bg-synergizia-purple transition-colors h-8 w-8 rounded-full flex items-center justify-center"
                 >
                   <span className="sr-only">Social Media</span>
@@ -27,17 +30,17 @@ const Footer = () => {
               ))}
             </div>
           </div>
-          
+
           {/* Quick Links */}
           <div>
             <h3 className="text-xl font-bold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               {[
-                { name: 'Home', id: 'home' },
-                { name: 'About', id: 'about' },
-                { name: 'Events', id: 'events' },
-                { name: 'Schedule', id: 'schedule' },
-                { name: 'Register', id: 'register' },
+                { name: "Home", id: "home" },
+                { name: "About", id: "about" },
+                { name: "Events", id: "events" },
+                { name: "Schedule", id: "schedule" },
+                { name: "Register", id: "register" },
               ].map((link) => (
                 <li key={link.id}>
                   <button
@@ -51,34 +54,50 @@ const Footer = () => {
               ))}
             </ul>
           </div>
-          
+
           {/* Contact */}
           <div>
             <h3 className="text-xl font-bold mb-4">Contact Us</h3>
             <ul className="space-y-3">
               <li className="flex items-start">
                 <MapPin className="h-5 w-5 mr-3 text-synergizia-gold" />
-                <span className="text-gray-400">Rajiv Gandhi College of Engineering, Chennai, Tamil Nadu</span>
+                <a
+                  href="https://maps.app.goo.gl/ympSy1p8h2DSabPD6"
+                  className="text-gray-400 hover:text-white transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Rajiv Gandhi College of Engineering, Chennai, Tamil Nadu
+                </a>
               </li>
+
               <li className="flex items-center">
                 <Mail className="h-5 w-5 mr-3 text-synergizia-gold" />
-                <a href="mailto:info@synergizia25.org" className="text-gray-400 hover:text-white transition-colors">
+                <a
+                  href="mailto:info@synergizia25.org"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
                   info@synergizia25.org
                 </a>
               </li>
               <li className="flex items-center">
                 <Phone className="h-5 w-5 mr-3 text-synergizia-gold" />
-                <a href="tel:+919876543210" className="text-gray-400 hover:text-white transition-colors">
-                  +91 98765 43210
+                <a
+                  href="tel:+916384665931"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  +91 63846 65931, 9381149610
                 </a>
               </li>
             </ul>
           </div>
         </div>
-        
+
         {/* Copyright */}
         <div className="pt-6 border-t border-gray-800 text-center text-gray-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} SYNERGIZIA25. All rights reserved.</p>
+          <p>
+            &copy; {new Date().getFullYear()} SYNERGIZIA25. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
