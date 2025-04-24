@@ -125,14 +125,15 @@ interface FormData {
   paymentMethod: string;
 }
 
-interface RegistrationData extends FormData {
+export interface RegistrationData extends FormData {
   id: string;
   registrationDate: string;
   paymentDetails: {
     amount: number;
     lunchOption: string;
     paymentMethod: string;
-    paymentStatus: string;
+    paymentStatus: "Pending" | "Verified" | "Rejected";
+    transactionId?: string;
   };
 }
 
@@ -149,7 +150,7 @@ const initialForm: FormData = {
   paymentMethod: "",
 };
 
-const LOCAL_STORAGE_KEY = "synergizia_registrations";
+export const LOCAL_STORAGE_KEY = "synergizia_registrations";
 
 const RegistrationForm = () => {
   const [formData, setFormData] = useState<FormData>(initialForm);
@@ -161,6 +162,7 @@ const RegistrationForm = () => {
     useState<boolean>(false);
   const [showPaymentSection, setShowPaymentSection] = useState(false);
   const [step, setStep] = useState<"details" | "payment">("details");
+  const [transactionId, setTransactionId] = useState<string>("");
 
   // Load existing registrations from localStorage
   const getRegistrations = (): RegistrationData[] => {
@@ -342,6 +344,15 @@ const RegistrationForm = () => {
       return;
     }
 
+    // For UPI payments, require a transaction ID
+    if (formData.paymentMethod === "upi" && !transactionId) {
+      setRegistrationError("Please enter your UPI transaction ID for verification.");
+      toast.error("Payment Error", {
+        description: "Please enter your UPI transaction ID for verification.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -357,18 +368,19 @@ const RegistrationForm = () => {
           amount: calculateTotalAmount(),
           lunchOption: formData.lunchOption,
           paymentMethod: formData.paymentMethod,
-          paymentStatus: "Completed" // In a real app, this might be "Pending" until confirmed
+          paymentStatus: "Pending", // Initial status is pending until verified by admin
+          transactionId: formData.paymentMethod === "upi" ? transactionId : undefined
         }
       };
 
-      // Save registration
+      // Save registration with pending payment status
       saveRegistration(registration);
 
       // Set success state
       setRegistrationSuccess(true);
 
-      toast.success("Registration Successful!", {
-        description: "You have successfully registered for SYNERGIZIA25.",
+      toast.success("Registration Submitted!", {
+        description: "Your registration has been submitted and is awaiting payment verification.",
       });
 
       // Reset form after a delay to show success message
@@ -376,6 +388,7 @@ const RegistrationForm = () => {
         setFormData(initialForm);
         setRegistrationSuccess(false);
         setStep("details");
+        setTransactionId("");
       }, 3000);
     } catch (error) {
       setRegistrationError(
@@ -643,6 +656,13 @@ const RegistrationForm = () => {
           </div>
         </div>
 
+        <Alert className="mb-6 bg-blue-50 border-blue-200 text-blue-700">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertDescription>
+            Your registration will be confirmed after your payment has been verified. This process may take up to 24 hours.
+          </AlertDescription>
+        </Alert>
+
         <div className="space-y-6">
           <div>
             <Label className="text-lg font-semibold">Select Payment Method</Label>
@@ -665,6 +685,17 @@ const RegistrationForm = () => {
                       <p><span className="font-medium">Account Holder:</span> K.Karthika</p>
                       <p><span className="font-medium">Account Number:</span> 20144174214</p>
                       <p><span className="font-medium">IFSC Code:</span> SBIN0003925</p>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <Label htmlFor="transactionId">UPI Transaction ID *</Label>
+                      <Input 
+                        id="transactionId"
+                        placeholder="Enter your UPI transaction ID" 
+                        value={transactionId}
+                        onChange={(e) => setTransactionId(e.target.value)}
+                        required={formData.paymentMethod === "upi"}
+                      />
+                      <p className="text-xs text-gray-500">Please provide the transaction ID for payment verification</p>
                     </div>
                   </div>
                 )}
@@ -717,7 +748,7 @@ const RegistrationForm = () => {
           <Button
             type="submit"
             className="flex-1 bg-synergizia-purple hover:bg-synergizia-purple-dark"
-            disabled={isSubmitting || !formData.paymentMethod}
+            disabled={isSubmitting || !formData.paymentMethod || (formData.paymentMethod === "upi" && !transactionId)}
           >
             {isSubmitting ? (
               <span className="flex items-center">
@@ -725,7 +756,7 @@ const RegistrationForm = () => {
                 Processing...
               </span>
             ) : (
-              `Pay ₹${calculateTotalAmount()}`
+              `Submit Registration`
             )}
           </Button>
         </div>
@@ -774,8 +805,8 @@ const RegistrationForm = () => {
               <Alert className="mb-6 bg-green-50 border-green-200 text-green-800">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription>
-                  Registration completed successfully! Your registration has
-                  been saved.
+                  Registration submitted successfully! Your registration is pending payment verification.
+                  Our team will review your payment and confirm your registration shortly.
                 </AlertDescription>
               </Alert>
             )}

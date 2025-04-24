@@ -1,7 +1,18 @@
 
 import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Download, Search, CheckCircle, XCircle, AlertTriangle, Loader, Trash2 } from "lucide-react";
+import { toast } from "./ui/sonner";
+import { Badge } from "./ui/badge";
 import {
   Table,
   TableBody,
@@ -10,9 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Search, Download, LogOut, Trash2 } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+} from "./ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,247 +32,213 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-
-// Shared local storage key with registration form
-const LOCAL_STORAGE_KEY = "synergizia_registrations";
-
-interface Registration {
-  id: string;
-  fullName: string;
-  college: string;
-  department: string;
-  customDepartment?: string;
-  year: string;
-  email: string;
-  phone: string;
-  selectedEvents: string[];
-  registrationDate: string;
-  paymentDetails?: {
-    amount: number;
-    lunchOption?: string;
-    paymentMethod: string;
-    paymentStatus: string;
-  };
-}
+} from "./ui/alert-dialog";
+import { LOCAL_STORAGE_KEY, RegistrationData } from "./RegistrationForm";
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
 const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
+  const [registrations, setRegistrations] = useState<RegistrationData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [filteredRegistrations, setFilteredRegistrations] = useState<
-    Registration[]
-  >([]);
-
-  // Load registrations from localStorage on component mount
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  
   useEffect(() => {
-    const loadRegistrations = () => {
-      try {
-        const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-        const savedRegistrations = data ? JSON.parse(data) : [];
-        setRegistrations(savedRegistrations);
-        setFilteredRegistrations(savedRegistrations);
-
-        if (savedRegistrations.length > 0) {
-          toast.success("Registrations loaded", {
-            description: `${savedRegistrations.length} registrations found`,
-          });
-        }
-      } catch (error) {
-        console.error("Error loading registrations:", error);
-        toast.error("Error loading registrations", {
-          description: "Failed to load registration data",
-        });
-      }
-    };
-
     loadRegistrations();
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) {
-      setFilteredRegistrations(registrations);
-      return;
+  const loadRegistrations = () => {
+    setLoading(true);
+    try {
+      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const data = storedData ? JSON.parse(storedData) : [];
+      setRegistrations(data);
+      toast.success(`Loaded ${data.length} registrations`);
+    } catch (error) {
+      toast.error("Failed to load registrations");
+      console.error("Error loading registrations:", error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const filtered = registrations.filter(
-      (reg) =>
-        reg.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reg.college?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reg.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reg.phone?.includes(searchTerm) ||
-        reg.selectedEvents?.some((event) =>
-          event.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const filteredRegistrations = registrations.filter((registration) => {
+    const searchValue = searchTerm.toLowerCase();
+    return (
+      registration.fullName.toLowerCase().includes(searchValue) ||
+      registration.email.toLowerCase().includes(searchValue) ||
+      registration.phone.toLowerCase().includes(searchValue) ||
+      registration.college.toLowerCase().includes(searchValue) ||
+      registration.id.toLowerCase().includes(searchValue)
     );
+  });
 
-    setFilteredRegistrations(filtered);
-  };
-
-  const handleDownloadCSV = () => {
-    // Create CSV content
-    const headers = [
-      "ID",
-      "Name",
-      "College",
-      "Department",
-      "Year",
-      "Email",
-      "Phone",
-      "Events",
-      "Registration Date",
-      "Payment Amount",
-      "Lunch Option",
-      "Payment Method",
-      "Payment Status"
-    ];
-
-    const rows = filteredRegistrations.map((reg) => [
-      reg.id,
-      reg.fullName,
-      reg.college,
-      getDepartmentName(reg.department),
-      getYearName(reg.year),
-      reg.email,
-      reg.phone,
-      reg.selectedEvents.join(", "),
-      new Date(reg.registrationDate).toLocaleString(),
-      reg.paymentDetails?.amount || "-",
-      reg.paymentDetails?.lunchOption || "-",
-      reg.paymentDetails?.paymentMethod || "-",
-      reg.paymentDetails?.paymentStatus || "-"
-    ]);
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\n");
-
-    // Create download link
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.setAttribute("href", url);
-    link.setAttribute("download", "synergizia25_registrations.csv");
-    link.style.visibility = "hidden";
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Clear all registrations
   const handleClearRegistrations = () => {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
     setRegistrations([]);
-    setFilteredRegistrations([]);
-    toast.success("All registrations cleared", {
-      description: "Registration data has been removed.",
-    });
+    toast.success("All registrations have been cleared");
   };
 
-  const getDepartmentName = (code: string): string => {
-    const departments: Record<string, string> = {
-      computer_science: "Computer Science",
-      information_technology: "Information Technology",
-      electronics: "Electronics & Communication",
-      electrical: "Electrical Engineering",
-      mechanical: "Mechanical Engineering",
-      civil: "Civil Engineering",
-      other: "Other",
-    };
+  const handleExportToCSV = () => {
+    try {
+      // Format registrations data for CSV
+      const headers = [
+        "ID",
+        "Name",
+        "Email",
+        "Phone",
+        "College",
+        "Department",
+        "Year",
+        "Events",
+        "Lunch Option",
+        "Payment Method",
+        "Amount",
+        "Payment Status",
+        "Transaction ID",
+        "Registration Date"
+      ];
 
-    return departments[code] || code;
+      const rows = filteredRegistrations.map((reg) => [
+        reg.id,
+        reg.fullName,
+        reg.email,
+        reg.phone,
+        reg.college,
+        reg.department === "other" ? reg.customDepartment : reg.department,
+        reg.year,
+        reg.selectedEvents.join(", "),
+        reg.lunchOption || "None",
+        reg.paymentDetails.paymentMethod,
+        `₹${reg.paymentDetails.amount}`,
+        reg.paymentDetails.paymentStatus,
+        reg.paymentDetails.transactionId || "N/A",
+        new Date(reg.registrationDate).toLocaleString()
+      ]);
+
+      const csvContent =
+        headers.join(",") +
+        "\n" +
+        rows.map((row) => row.map(item => `"${item}"`).join(",")).join("\n");
+
+      // Create a Blob and download link
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `synergizia-registrations-${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("CSV file exported successfully");
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      toast.error("Failed to export CSV file");
+    }
   };
 
-  const getYearName = (code: string): string => {
-    const years: Record<string, string> = {
-      "1": "First Year",
-      "2": "Second Year",
-      "3": "Third Year",
-      "4": "Fourth Year",
-      pg: "Postgraduate",
-    };
+  const updateRegistrationStatus = (id: string, status: "Verified" | "Rejected") => {
+    setProcessingId(id);
+    try {
+      const updatedRegistrations = registrations.map(reg => {
+        if (reg.id === id) {
+          return {
+            ...reg,
+            paymentDetails: {
+              ...reg.paymentDetails,
+              paymentStatus: status
+            }
+          };
+        }
+        return reg;
+      });
+      
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedRegistrations));
+      setRegistrations(updatedRegistrations);
+      
+      toast.success(`Payment ${status.toLowerCase()} successfully`);
+    } catch (error) {
+      console.error(`Error updating payment status:`, error);
+      toast.error(`Failed to update payment status`);
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
-    return years[code] || code;
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status) {
+      case "Verified":
+        return <Badge className="bg-green-500 hover:bg-green-600"><CheckCircle className="w-3 h-3 mr-1" /> Verified</Badge>;
+      case "Rejected":
+        return <Badge className="bg-red-500 hover:bg-red-600"><XCircle className="w-3 h-3 mr-1" /> Rejected</Badge>;
+      default:
+        return <Badge className="bg-amber-500 hover:bg-amber-600"><AlertTriangle className="w-3 h-3 mr-1" /> Pending</Badge>;
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-md py-4">
-        <div className="container mx-auto px-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-synergizia-purple">
-              Admin Dashboard
-            </h1>
-            <p className="text-gray-500 text-sm">
-              SYNERGIZIA25 Event Management
-            </p>
-          </div>
-          <Button variant="outline" onClick={onLogout}>
-            <LogOut className="mr-2 h-4 w-4" /> Logout
-          </Button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+    <div className="container mx-auto px-4 py-8">
+      <Card className="mb-8">
+        <CardHeader>
+          <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-semibold">Registration Entries</h2>
-              <p className="text-gray-500">View and manage all registrations</p>
+              <CardTitle className="text-3xl font-bold">Admin Dashboard</CardTitle>
+              <CardDescription>
+                Manage event registrations and verify payments
+              </CardDescription>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <form onSubmit={handleSearch} className="flex gap-2">
-                <Input
-                  placeholder="Search registrations..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full sm:w-64"
-                />
-                <Button type="submit" variant="outline">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </form>
-
-              <Button
-                onClick={handleDownloadCSV}
-                className="bg-synergizia-blue hover:bg-synergizia-blue-dark"
+            <Button variant="outline" onClick={onLogout}>
+              Logout
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search by name, email, phone or ID..."
+                value={searchTerm}
+                onChange={handleSearch}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handleExportToCSV}
                 disabled={filteredRegistrations.length === 0}
               >
-                <Download className="mr-2 h-4 w-4" /> Download CSV
+                <Download className="w-4 h-4 mr-2" /> Export CSV
               </Button>
               
-              {/* Alert Dialog for Clear Registrations */}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button
+                  <Button 
                     variant="destructive"
                     disabled={registrations.length === 0}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Clear Registrations
+                    <Trash2 className="w-4 h-4 mr-2" /> Clear All
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Clear All Registrations?</AlertDialogTitle>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      If you click OK, all registration entries will be permanently lost.
-                      This action cannot be undone.
+                      This action will permanently delete all registration data. This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={handleClearRegistrations}>
-                      OK
+                      Yes, delete all data
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -271,90 +246,96 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
             </div>
           </div>
 
-          {/* Registrations Table */}
-          <div className="overflow-x-auto">
-            <Table>
-              <TableCaption>List of all participant registrations</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>College</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Year</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Registered Events</TableHead>
-                  <TableHead>Payment</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRegistrations.length > 0 ? (
-                  filteredRegistrations.map((reg) => (
-                    <TableRow key={reg.id}>
-                      <TableCell>{reg.id}</TableCell>
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : filteredRegistrations.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">
+              {searchTerm
+                ? "No registrations match your search criteria."
+                : "No registrations found."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableCaption>
+                  Total of {filteredRegistrations.length} registrations
+                </TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Events</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Payment Status</TableHead>
+                    <TableHead>Transaction ID</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRegistrations.map((registration) => (
+                    <TableRow key={registration.id}>
+                      <TableCell className="font-mono text-xs">
+                        {registration.id}
+                      </TableCell>
                       <TableCell className="font-medium">
-                        {reg.fullName}
+                        {registration.fullName}
                       </TableCell>
-                      <TableCell>{reg.college}</TableCell>
-                      <TableCell>{getDepartmentName(reg.department)}</TableCell>
-                      <TableCell>{getYearName(reg.year)}</TableCell>
-                      <TableCell>{reg.email}</TableCell>
-                      <TableCell>{reg.phone}</TableCell>
+                      <TableCell>{registration.email}</TableCell>
+                      <TableCell>{registration.phone}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {reg.selectedEvents.map((event, index) => (
-                            <span
-                              key={index}
-                              className="inline-block px-2 py-1 bg-synergizia-purple/10 text-synergizia-purple text-xs rounded-full"
+                        {registration.selectedEvents.length} event(s)
+                      </TableCell>
+                      <TableCell>₹{registration.paymentDetails.amount}</TableCell>
+                      <TableCell>
+                        {getPaymentStatusBadge(registration.paymentDetails.paymentStatus)}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {registration.paymentDetails.transactionId || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {registration.paymentDetails.paymentStatus === "Pending" && (
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="bg-green-50 hover:bg-green-100 text-green-700"
+                              onClick={() => updateRegistrationStatus(registration.id, "Verified")}
+                              disabled={processingId === registration.id}
                             >
-                              {event}
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {reg.paymentDetails ? (
-                          <div className="space-y-1">
-                            <p className="text-sm">
-                              <span className="font-medium">Amount:</span> ₹{reg.paymentDetails.amount}
-                            </p>
-                            {reg.paymentDetails.lunchOption && (
-                              <p className="text-sm">
-                                <span className="font-medium">Lunch:</span> {reg.paymentDetails.lunchOption}
-                              </p>
-                            )}
-                            <p className="text-sm">
-                              <span className="font-medium">Method:</span> {reg.paymentDetails.paymentMethod}
-                            </p>
-                            <p className="text-sm">
-                              <span className={`font-medium ${
-                                reg.paymentDetails.paymentStatus === "Completed" 
-                                  ? "text-green-600" 
-                                  : "text-amber-600"
-                              }`}>
-                                Status: {reg.paymentDetails.paymentStatus}
-                              </span>
-                            </p>
+                              {processingId === registration.id ? <Loader className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Verify
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="bg-red-50 hover:bg-red-100 text-red-700"
+                              onClick={() => updateRegistrationStatus(registration.id, "Rejected")}
+                              disabled={processingId === registration.id}
+                            >
+                              {processingId === registration.id ? <Loader className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />} Reject
+                            </Button>
                           </div>
-                        ) : (
-                          <span className="text-gray-400">No payment info</span>
                         )}
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      No registrations found matching your search.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      </main>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-between border-t pt-6">
+          <p className="text-sm text-gray-500">
+            Showing {filteredRegistrations.length} of {registrations.length} registrations
+          </p>
+          <Button variant="outline" onClick={loadRegistrations}>
+            Refresh Data
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
