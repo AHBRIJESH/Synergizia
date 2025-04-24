@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from "react";
+
+import React from 'react';
 import { toast } from "@/components/ui/sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -7,9 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -18,93 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Event } from "./EventCard";
-import { AlertCircle, CheckCircle, Loader, Wallet } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { verifyUPIPayment } from "@/lib/supabase";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import UPIPayment from "@/components/UPIPayment";
-
-interface TimeSlot {
-  time: string;
-  events: Event[];
-}
-
-const events: Event[] = [
-  {
-    id: "TECH01",
-    title: "Freq Code",
-    type: "technical",
-    timeSlot: "12:00 – 1:00 PM",
-    description:
-      "A coding competition designed to test your programming skills and algorithmic thinking under time pressure.",
-    icon: null,
-  },
-  {
-    id: "TECH02",
-    title: "Tech Quiz",
-    type: "technical",
-    timeSlot: "11:00 – 12:00 PM",
-    description:
-      "Test your knowledge across various domains of technology in this fast-paced quiz competition.",
-    icon: null,
-  },
-  {
-    id: "TECH03",
-    title: "Find n Build",
-    type: "technical",
-    timeSlot: "2:00 – 3:00 PM",
-    description:
-      "Scavenge for components and build a working prototype in this exciting engineering challenge.",
-    icon: null,
-  },
-  {
-    id: "TECH04",
-    title: "Paper Presentation",
-    type: "technical",
-    timeSlot: "9:30 – 10:30 AM",
-    description:
-      "Present your research papers and innovative ideas to a panel of expert judges and audience.",
-    icon: null,
-  },
-  {
-    id: "NTECH01",
-    title: "JAM",
-    type: "non-technical",
-    timeSlot: "9:30 – 10:30 AM",
-    description:
-      "Just A Minute - Showcase your spontaneity and speaking skills in this classic event.",
-    icon: null,
-  },
-  {
-    id: "NTECH02",
-    title: "Snap Expo",
-    type: "non-technical",
-    timeSlot: "11:00 – 12:00 PM",
-    description:
-      "A photography competition that challenges your creative eye and storytelling abilities.",
-    icon: null,
-  },
-  {
-    id: "NTECH03",
-    title: "Crossing Bridge",
-    type: "non-technical",
-    timeSlot: "12:00 – 1:00 PM",
-    description:
-      "A team-based problem-solving event that tests your coordination and strategic thinking.",
-    icon: null,
-  },
-  {
-    id: "NTECH04",
-    title: "Luck in Sack",
-    type: "non-technical",
-    timeSlot: "2:00 – 3:00 PM",
-    description:
-      "A fun-filled event that combines luck with quick thinking and adaptability.",
-    icon: null,
-  },
-];
+import { useRegistration } from "@/hooks/useRegistration";
+import EventsSelection from './form/EventsSelection';
+import RegistrationSummary from './form/RegistrationSummary';
 
 const timeSlots: Record<string, string[]> = {
   "9:30 – 10:30 AM": ["Paper Presentation", "JAM"],
@@ -113,252 +34,21 @@ const timeSlots: Record<string, string[]> = {
   "2:00 – 3:00 PM": ["Find n Build", "Luck in Sack"],
 };
 
-interface FormData {
-  fullName: string;
-  college: string;
-  department: string;
-  customDepartment: string;
-  year: string;
-  email: string;
-  phone: string;
-  selectedEvents: string[];
-  lunchOption: string;
-}
-
-export interface RegistrationData extends FormData {
-  id: string;
-  registrationDate: string;
-  paymentDetails: {
-    amount: number;
-    lunchOption: string;
-    paymentMethod: string;
-    paymentStatus: "Pending" | "Verified" | "Rejected";
-    transactionId?: string;
-  };
-}
-
-const initialForm: FormData = {
-  fullName: "",
-  college: "",
-  department: "",
-  customDepartment: "",
-  year: "",
-  email: "",
-  phone: "",
-  selectedEvents: [],
-  lunchOption: "",
-};
-
-export const LOCAL_STORAGE_KEY = "synergizia_registrations";
-
-const gpayButtonConfiguration = {
-  buttonColor: 'black',
-  buttonType: 'buy',
-  buttonLocale: 'en',
-  buttonSizeMode: 'fill'
-};
-
 const RegistrationForm = () => {
-  const [formData, setFormData] = useState<FormData>(initialForm);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [registrationError, setRegistrationError] = useState<string | null>(null);
-  const [registrationSuccess, setRegistrationSuccess] = useState<boolean>(false);
-  const [step, setStep] = useState<"details" | "payment">("details");
-  const [currentRegistrationId, setCurrentRegistrationId] = useState<string>("");
-  const [googlePayReady, setGooglePayReady] = useState<boolean>(false);
-  const [googlePayButtonLoaded, setGooglePayButtonLoaded] = useState<boolean>(false);
-
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://pay.google.com/gp/p/js/pay.js';
-    script.async = true;
-    script.onload = initializeGooglePay;
-    document.body.appendChild(script);
-
-    return () => {
-      if (script.parentNode) {
-        document.body.removeChild(script);
-      }
-    };
-  }, []);
-
-  const initializeGooglePay = () => {
-    if (!window.google || !window.google.payments) {
-      console.error('Google Pay API not loaded');
-      return;
-    }
-
-    const paymentsClient = new window.google.payments.api.PaymentsClient({
-      environment: 'TEST',
-    });
-
-    const isReadyToPayRequest = {
-      apiVersion: 2,
-      apiVersionMinor: 0,
-      allowedPaymentMethods: [{
-        type: 'CARD',
-        parameters: {
-          allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
-          allowedCardNetworks: ['VISA', 'MASTERCARD', 'RUPAY'],
-        }
-      }]
-    };
-
-    paymentsClient.isReadyToPay(isReadyToPayRequest)
-      .then((response: any) => {
-        if (response.result) {
-          setGooglePayReady(true);
-          
-          const googlePayButton = paymentsClient.createButton({ 
-            onClick: onGooglePayButtonClicked,
-            ...gpayButtonConfiguration
-          });
-          
-          window.googlePayClient = paymentsClient;
-          window.googlePayButtonElement = googlePayButton;
-          setGooglePayButtonLoaded(true);
-        } else {
-          console.log('Google Pay is not available');
-        }
-      })
-      .catch((error: any) => {
-        console.error('Google Pay initialization error', error);
-      });
-  };
-
-  useEffect(() => {
-    if (googlePayButtonLoaded && step === "payment") {
-      const container = document.getElementById('google-pay-button-container');
-      if (container && window.googlePayButtonElement) {
-        container.innerHTML = '';
-        container.appendChild(window.googlePayButtonElement);
-      }
-    }
-  }, [googlePayButtonLoaded, step]);
-
-  const onGooglePayButtonClicked = () => {
-    if (!window.googlePayClient) {
-      console.error('Google Pay client not initialized');
-      return;
-    }
-    
-    const paymentDataRequest = {
-      apiVersion: 2,
-      apiVersionMinor: 0,
-      allowedPaymentMethods: [{
-        type: 'CARD',
-        parameters: {
-          allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
-          allowedCardNetworks: ['VISA', 'MASTERCARD', 'RUPAY'],
-          billingAddressRequired: false
-        },
-        tokenizationSpecification: {
-          type: 'PAYMENT_GATEWAY',
-          parameters: {
-            'gateway': 'example',
-            'gatewayMerchantId': 'synergizia25Events'
-          }
-        }
-      }],
-      merchantInfo: {
-        merchantId: '12345678901234567890',
-        merchantName: 'SYNERGIZIA25'
-      },
-      transactionInfo: {
-        totalPriceStatus: 'FINAL',
-        totalPriceLabel: 'Total',
-        totalPrice: calculateTotalAmount().toString(),
-        currencyCode: 'INR',
-        countryCode: 'IN'
-      }
-    };
-
-    window.googlePayClient.loadPaymentData(paymentDataRequest)
-      .then((paymentData: any) => {
-        setIsSubmitting(true);
-        const paymentToken = paymentData.paymentMethodData.tokenizationData.token;
-        processGooglePayment(paymentToken);
-      })
-      .catch((error: any) => {
-        console.error('Error processing Google Pay payment', error);
-        toast.error("Payment Failed", {
-          description: "There was an error processing your payment. Please try again."
-        });
-      });
-  };
-
-  const processGooglePayment = async (paymentToken: string) => {
-    try {
-      const tokenHash = btoa(paymentToken).substring(0, 20);
-      const transactionId = `GPAY-${Date.now()}-${tokenHash}`;
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const { data, error } = await verifyUPIPayment(transactionId, currentRegistrationId);
-      
-      if (error) {
-        throw new Error("Payment verification failed");
-      }
-      
-      completeRegistration(transactionId);
-    } catch (error) {
-      setRegistrationError("Payment verification failed. Please try again.");
-      toast.error("Payment Failed", {
-        description: "There was an error verifying your payment. Please try again."
-      });
-      setIsSubmitting(false);
-    }
-  };
-
-  const getRegistrations = (): RegistrationData[] => {
-    const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  };
-
-  const saveRegistration = (registration: RegistrationData) => {
-    const registrations = getRegistrations();
-    localStorage.setItem(
-      LOCAL_STORAGE_KEY,
-      JSON.stringify([...registrations, registration])
-    );
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setRegistrationError(null);
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setRegistrationError(null);
-  };
-
-  const handleEventChange = (eventTitle: string, checked: boolean) => {
-    let eventTimeSlot = "";
-    for (const [time, eventNames] of Object.entries(timeSlots)) {
-      if (eventNames.includes(eventTitle)) {
-        eventTimeSlot = time;
-        break;
-      }
-    }
-
-    if (checked) {
-      setFormData((prev) => ({
-        ...prev,
-        selectedEvents: [...prev.selectedEvents, eventTitle],
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        selectedEvents: prev.selectedEvents.filter(
-          (event) => event !== eventTitle
-        ),
-      }));
-    }
-
-    setRegistrationError(null);
-  };
+  const {
+    formData,
+    isSubmitting,
+    registrationError,
+    registrationSuccess,
+    step,
+    currentRegistrationId,
+    handleChange,
+    handleSelectChange,
+    calculateTotalAmount,
+    handleProceedToPayment,
+    completeRegistration,
+    setStep
+  } = useRegistration();
 
   const isEventDisabled = (eventTitle: string): boolean => {
     if (formData.selectedEvents.length === 0) return false;
@@ -384,132 +74,13 @@ const RegistrationForm = () => {
     return false;
   };
 
-  const validateEmailFormat = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePhoneFormat = (phone: string): boolean => {
-    const phoneRegex = /^\d{10,15}$/;
-    return phoneRegex.test(phone);
-  };
-
-  const checkIfEmailExists = (email: string): boolean => {
-    const registrations = getRegistrations();
-    return registrations.some(
-      (reg) => reg.email.toLowerCase() === email.toLowerCase()
-    );
-  };
-
-  const calculateTotalAmount = (): number => {
-    let total = formData.selectedEvents.length > 0 ? 100 : 0;
-
-    if (formData.lunchOption === "veg") {
-      total += 50;
-    } else if (formData.lunchOption === "nonveg") {
-      total += 60;
-    }
-
-    return total;
-  };
-
-  const handleProceedToPayment = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (
-      !formData.fullName ||
-      !formData.college ||
-      !formData.department ||
-      !formData.year ||
-      !formData.email ||
-      !formData.phone ||
-      formData.selectedEvents.length === 0 ||
-      (formData.department === "other" && !formData.customDepartment)
-    ) {
-      setRegistrationError(
-        "Please fill in all required fields and select at least one event."
+  const handleEventChange = (eventTitle: string, checked: boolean) => {
+    if (checked) {
+      handleSelectChange('selectedEvents', [...formData.selectedEvents, eventTitle]);
+    } else {
+      handleSelectChange('selectedEvents', 
+        formData.selectedEvents.filter(event => event !== eventTitle)
       );
-      toast.error("Validation Error", {
-        description:
-          "Please fill in all required fields and select at least one event.",
-      });
-      return;
-    }
-
-    if (!validateEmailFormat(formData.email)) {
-      setRegistrationError("Please enter a valid email address.");
-      toast.error("Validation Error", {
-        description: "Please enter a valid email address.",
-      });
-      return;
-    }
-
-    if (!validatePhoneFormat(formData.phone)) {
-      setRegistrationError(
-        "Please enter a valid phone number (10-15 digits only)."
-      );
-      toast.error("Validation Error", {
-        description: "Please enter a valid phone number (10-15 digits only).",
-      });
-      return;
-    }
-
-    if (checkIfEmailExists(formData.email)) {
-      setRegistrationError(
-        "This email is already registered. Please use a different email."
-      );
-      toast.error("Registration Error", {
-        description:
-          "This email is already registered. Please use a different email.",
-      });
-      return;
-    }
-
-    const registrationId = `REG-${Date.now()}`;
-    setCurrentRegistrationId(registrationId);
-
-    setRegistrationError(null);
-    setStep("payment");
-  };
-
-  const completeRegistration = (transactionId: string) => {
-    try {
-      const registration: RegistrationData = {
-        ...formData,
-        id: currentRegistrationId,
-        registrationDate: new Date().toISOString(),
-        paymentDetails: {
-          amount: calculateTotalAmount(),
-          lunchOption: formData.lunchOption,
-          paymentMethod: "upi",
-          paymentStatus: "Verified",
-          transactionId: transactionId
-        }
-      };
-
-      saveRegistration(registration);
-
-      setRegistrationSuccess(true);
-
-      toast.success("Registration Successful!", {
-        description: `Your payment has been verified and your registration is confirmed. A confirmation will be sent to ${formData.email}.`,
-      });
-
-      setTimeout(() => {
-        setFormData(initialForm);
-        setRegistrationSuccess(false);
-        setStep("details");
-        setIsSubmitting(false);
-      }, 3000);
-    } catch (error) {
-      setRegistrationError(
-        "There was an error with your registration. Please try again."
-      );
-      toast.error("Registration Failed", {
-        description:
-          "There was an error with your registration. Please try again.",
-      });
-      setIsSubmitting(false);
     }
   };
 
@@ -544,34 +115,19 @@ const RegistrationForm = () => {
               <Label htmlFor="department">Department *</Label>
               <Select
                 value={formData.department}
-                onValueChange={(value) =>
-                  handleSelectChange("department", value)
-                }
-                required
+                onValueChange={(value) => handleSelectChange("department", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="computer_science">
-                      Computer Science
-                    </SelectItem>
-                    <SelectItem value="information_technology">
-                      Information Technology
-                    </SelectItem>
-                    <SelectItem value="electronics">
-                      Electronics & Communication
-                    </SelectItem>
-                    <SelectItem value="electrical">
-                      Electrical Engineering
-                    </SelectItem>
-                    <SelectItem value="mechanical">
-                      Mechanical Engineering
-                    </SelectItem>
-                    <SelectItem value="civil">
-                      Civil Engineering
-                    </SelectItem>
+                    <SelectItem value="computer_science">Computer Science</SelectItem>
+                    <SelectItem value="information_technology">Information Technology</SelectItem>
+                    <SelectItem value="electronics">Electronics & Communication</SelectItem>
+                    <SelectItem value="electrical">Electrical Engineering</SelectItem>
+                    <SelectItem value="mechanical">Mechanical Engineering</SelectItem>
+                    <SelectItem value="civil">Civil Engineering</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectGroup>
                 </SelectContent>
@@ -580,9 +136,7 @@ const RegistrationForm = () => {
 
             {formData.department === "other" && (
               <div className="space-y-2">
-                <Label htmlFor="customDepartment">
-                  Specify Department *
-                </Label>
+                <Label htmlFor="customDepartment">Specify Department *</Label>
                 <Input
                   id="customDepartment"
                   name="customDepartment"
@@ -598,10 +152,7 @@ const RegistrationForm = () => {
               <Label htmlFor="year">Year of Study *</Label>
               <Select
                 value={formData.year}
-                onValueChange={(value) =>
-                  handleSelectChange("year", value)
-                }
-                required
+                onValueChange={(value) => handleSelectChange("year", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select year" />
@@ -644,55 +195,12 @@ const RegistrationForm = () => {
               />
             </div>
 
-            <div className="space-y-3">
-              <Label>Select Events *</Label>
-              <div className="grid grid-cols-1 gap-2">
-                {Object.entries(timeSlots).map(([time, eventNames]) => (
-                  <div key={time} className="space-y-2">
-                    <div className="text-sm font-medium text-gray-500">
-                      {time}
-                    </div>
-                    <div className="flex flex-col gap-2 pl-4 border-l-2 border-gray-200">
-                      {eventNames.map((name) => {
-                        const isSelected =
-                          formData.selectedEvents.includes(name);
-                        const isDisabled =
-                          !isSelected && isEventDisabled(name);
-
-                        return (
-                          <div
-                            key={name}
-                            className="flex items-center space-x-2"
-                          >
-                            <Checkbox
-                              id={`event-${name}`}
-                              checked={isSelected}
-                              onCheckedChange={(checked) => {
-                                handleEventChange(name, checked === true);
-                              }}
-                              disabled={isDisabled}
-                            />
-                            <Label
-                              htmlFor={`event-${name}`}
-                              className={
-                                isDisabled ? "text-gray-400" : ""
-                              }
-                            >
-                              {name}
-                            </Label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {formData.selectedEvents.length === 0 && (
-                <p className="text-sm text-red-500">
-                  Please select at least one event.
-                </p>
-              )}
-            </div>
+            <EventsSelection
+              selectedEvents={formData.selectedEvents}
+              onEventChange={handleEventChange}
+              timeSlots={timeSlots}
+              isEventDisabled={isEventDisabled}
+            />
             
             <div className="space-y-3">
               <Label>Lunch Option</Label>
@@ -748,27 +256,12 @@ const RegistrationForm = () => {
   const renderPaymentForm = () => {
     return (
       <div className="space-y-6">
-        <div className="bg-gray-50 p-4 rounded-lg mb-6">
-          <h3 className="text-lg font-semibold mb-2">Registration Summary</h3>
-          <div className="flex justify-between mb-2">
-            <span>Events ({formData.selectedEvents.length})</span>
-            <span>₹100</span>
-          </div>
-          {formData.lunchOption && (
-            <div className="flex justify-between mb-2">
-              <span>Lunch ({formData.lunchOption === "veg" ? "Vegetarian" : "Non-Vegetarian"})</span>
-              <span>₹{formData.lunchOption === "veg" ? 50 : 60}</span>
-            </div>
-          )}
-          <div className="flex justify-between font-bold pt-2 border-t border-gray-300 mt-2">
-            <span>Total</span>
-            <span>₹{calculateTotalAmount()}</span>
-          </div>
-          
-          <div className="mt-4 pt-2 border-t border-gray-200">
-            <p className="text-sm text-gray-600">Confirmation will be sent to: <span className="font-medium">{formData.email}</span></p>
-          </div>
-        </div>
+        <RegistrationSummary
+          email={formData.email}
+          selectedEvents={formData.selectedEvents}
+          lunchOption={formData.lunchOption}
+          calculateTotalAmount={calculateTotalAmount}
+        />
 
         <UPIPayment
           amount={calculateTotalAmount()}
@@ -808,17 +301,14 @@ const RegistrationForm = () => {
         </h2>
         <div className="w-20 h-1 bg-synergizia-gold mx-auto mb-6"></div>
         <p className="text-center text-gray-600 max-w-2xl mx-auto mb-12">
-          Secure your spot at SYNERGIZIA25 by filling out the registration form
-          below. Please note that you cannot register for events happening at
-          the same time.
+          Secure your spot at SYNERGIZIA25 by filling out the registration form below. 
+          Please note that you cannot register for events happening at the same time.
         </p>
 
         <Card className="max-w-2xl mx-auto bg-white">
           <CardHeader>
             <CardTitle>Event Registration</CardTitle>
-            <CardDescription>
-              Fill in your details to register for the symposium
-            </CardDescription>
+            <CardDescription>Fill in your details to register for the symposium</CardDescription>
             
             <div className="flex items-center mt-4">
               <div className={`flex-1 pb-2 border-b-2 ${step === "details" ? "border-synergizia-purple text-synergizia-purple font-medium" : "border-gray-200 text-gray-400"}`}>
@@ -854,19 +344,5 @@ const RegistrationForm = () => {
     </section>
   );
 };
-
-declare global {
-  interface Window {
-    google?: {
-      payments: {
-        api: {
-          PaymentsClient: any;
-        }
-      }
-    };
-    googlePayClient?: any;
-    googlePayButtonElement?: HTMLElement;
-  }
-}
 
 export default RegistrationForm;
