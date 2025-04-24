@@ -1,11 +1,20 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// Public Supabase URL and anon key are safe to expose on the client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Check if the environment variables are available
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Validate that we have the required configuration
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase credentials. Please make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your environment variables.');
+}
+
+// Create the Supabase client with appropriate error handling
+export const supabase = createClient(
+  supabaseUrl || 'https://your-project-url.supabase.co',  // Provide a placeholder that will cause a visible error
+  supabaseAnonKey || 'your-anon-key'  // Provide a placeholder that will indicate misconfiguration
+);
 
 // Function to call Supabase edge functions
 export async function callEdgeFunction(
