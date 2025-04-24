@@ -1,5 +1,5 @@
 
--- Create payments table for tracking UPI transactions
+-- Create payments table for tracking transactions
 CREATE TABLE IF NOT EXISTS payments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     registration_id TEXT REFERENCES registrations(id),
@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS payments (
     status TEXT NOT NULL DEFAULT 'Pending',
     payment_method TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    payment_token TEXT, -- For storing Google Pay payment tokens if needed
+    payment_metadata JSONB -- For additional payment gateway metadata
 );
 
 -- Enable RLS
@@ -42,3 +44,6 @@ CREATE TRIGGER update_payments_updated_at
     FOR EACH ROW
     EXECUTE PROCEDURE update_updated_at_column();
 
+-- Create index for faster lookups
+CREATE INDEX IF NOT EXISTS idx_payments_transaction_id ON payments(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_payments_registration_id ON payments(registration_id);

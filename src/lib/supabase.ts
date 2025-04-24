@@ -39,10 +39,11 @@ export async function callEdgeFunction(
   }
 }
 
-// Function to verify UPI payment
+// Function to verify Google Pay payment
 export async function verifyUPIPayment(transactionId: string, registrationId: string) {
   return callEdgeFunction('verify-upi-payment', {
     transactionId,
-    registrationId
+    registrationId,
+    paymentMethod: 'googlepay'
   });
 }
