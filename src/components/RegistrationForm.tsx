@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -47,7 +46,8 @@ const RegistrationForm = () => {
     calculateTotalAmount,
     handleProceedToPayment,
     completeRegistration,
-    setStep
+    setStep,
+    setIsSubmitting
   } = useRegistration();
 
   const isEventDisabled = (eventTitle: string): boolean => {
@@ -269,12 +269,7 @@ const RegistrationForm = () => {
           email={formData.email}
           onPaymentComplete={(success) => {
             if (success) {
-              setRegistrationSuccess(true);
-              setTimeout(() => {
-                setFormData(initialForm);
-                setRegistrationSuccess(false);
-                setStep("details");
-              }, 3000);
+              completeRegistration("PAID-VIA-UPI");
             }
           }}
         />

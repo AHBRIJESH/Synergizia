@@ -33,7 +33,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
-import { LOCAL_STORAGE_KEY, RegistrationData } from "./RegistrationForm";
+import { RegistrationData } from "@/hooks/useRegistration";
+
+// Define a constant for localStorage key
+const LOCAL_STORAGE_KEY = 'synergizia_registrations';
 
 interface AdminDashboardProps {
   onLogout: () => void;
