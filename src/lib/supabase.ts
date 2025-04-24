@@ -1,6 +1,12 @@
 
 import { createClient } from '@supabase/supabase-js'
 
+// Define return type interfaces
+interface FunctionResponse<T = any> {
+  data: T | null;
+  error: Error | null;
+}
+
 // Check if the environment variables are available
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -21,7 +27,7 @@ export async function callEdgeFunction(
   functionName: string,
   payload?: any,
   options?: { token?: string }
-) {
+): Promise<FunctionResponse> {
   try {
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: payload,
@@ -40,7 +46,7 @@ export async function callEdgeFunction(
 }
 
 // Function to verify UPI payment
-export async function verifyUPIPayment(transactionId: string, registrationId: string) {
+export async function verifyUPIPayment(transactionId: string, registrationId: string): Promise<FunctionResponse> {
   // For development/testing, simulate successful verification
   if (!supabaseUrl || !supabaseAnonKey) {
     console.log('Using mocked UPI verification due to missing Supabase credentials');
