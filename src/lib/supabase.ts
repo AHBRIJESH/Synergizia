@@ -12,8 +12,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Create the Supabase client with appropriate error handling
 export const supabase = createClient(
-  supabaseUrl || 'https://your-project-url.supabase.co',  // Provide a placeholder that will cause a visible error
-  supabaseAnonKey || 'your-anon-key'  // Provide a placeholder that will indicate misconfiguration
+  supabaseUrl || 'https://your-project-url.supabase.co',
+  supabaseAnonKey || 'your-anon-key'
 );
 
 // Function to call Supabase edge functions
@@ -39,11 +39,11 @@ export async function callEdgeFunction(
   }
 }
 
-// Function to verify Google Pay payment
+// Function to verify UPI payment
 export async function verifyUPIPayment(transactionId: string, registrationId: string) {
   return callEdgeFunction('verify-upi-payment', {
     transactionId,
     registrationId,
-    paymentMethod: 'googlepay'
+    paymentMethod: 'upi'
   });
 }

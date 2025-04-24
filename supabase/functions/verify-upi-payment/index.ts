@@ -25,9 +25,6 @@ serve(async (req) => {
       );
     }
 
-    // For Google Pay, we'll consider the payment verified immediately since Google Pay handles verification on their end
-    const isGooglePay = paymentMethod === 'googlepay';
-    
     // Store the payment information
     const { data: paymentData, error: paymentError } = await supabase
       .from('payments')
@@ -36,8 +33,8 @@ serve(async (req) => {
           registration_id: registrationId,
           transaction_id: transactionId,
           amount: 0, // We'll update this after fetching registration details
-          status: isGooglePay ? 'Verified' : 'Pending',
-          payment_method: paymentMethod || 'googlepay',
+          status: 'Pending',
+          payment_method: 'upi',
         }
       ])
       .select()
@@ -51,46 +48,52 @@ serve(async (req) => {
       );
     }
 
-    // If this is a Google Pay payment, we update the registration status immediately
-    if (isGooglePay) {
-      // Get registration details
-      const { data: registration, error: registrationError } = await supabase
-        .from('registrations')
-        .select('payment_details')
-        .eq('id', registrationId)
-        .single();
+    // Get registration details to update payment amount
+    const { data: registration, error: registrationError } = await supabase
+      .from('registrations')
+      .select('payment_details')
+      .eq('id', registrationId)
+      .single();
 
-      if (registrationError) {
-        console.error('Error fetching registration:', registrationError);
-        // We don't fail the request, just log the error
-      } else if (registration) {
-        // Update payment amount using registration details
-        const amount = registration.payment_details?.amount || 0;
+    if (registrationError) {
+      console.error('Error fetching registration:', registrationError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch registration details' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (registration) {
+      // Update payment amount using registration details
+      const amount = registration.payment_details?.amount || 0;
+      
+      await supabase
+        .from('payments')
+        .update({ amount })
+        .eq('id', paymentData.id);
         
-        await supabase
-          .from('payments')
-          .update({ amount })
-          .eq('id', paymentData.id);
-          
-        // Update registration payment status to Verified
-        await supabase
-          .from('registrations')
-          .update({
-            payment_details: {
-              ...registration.payment_details,
-              paymentStatus: 'Verified',
-              transactionId: transactionId
-            }
-          })
-          .eq('id', registrationId);
-      }
+      // Update registration payment status
+      await supabase
+        .from('registrations')
+        .update({
+          payment_details: {
+            ...registration.payment_details,
+            paymentStatus: 'Pending',
+            transactionId: transactionId
+          }
+        })
+        .eq('id', registrationId);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        status: isGooglePay ? 'Verified' : 'Pending',
-        paymentId: paymentData.id
+        status: 'Pending',
+        paymentId: paymentData.id,
+        upiDetails: {
+          upiId: "your.upi.id@bank", // Replace with your actual UPI ID
+          merchantName: "SYNERGIZIA25"
+        }
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );

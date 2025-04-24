@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { toast } from "@/components/ui/sonner";
 import {
@@ -25,6 +24,7 @@ import { AlertCircle, CheckCircle, Loader, Wallet } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { verifyUPIPayment } from "@/lib/supabase";
+import UPIPayment from "@/components/UPIPayment";
 
 interface TimeSlot {
   time: string;
@@ -151,7 +151,6 @@ const initialForm: FormData = {
 
 export const LOCAL_STORAGE_KEY = "synergizia_registrations";
 
-// Google Pay payment button configuration
 const gpayButtonConfiguration = {
   buttonColor: 'black',
   buttonType: 'buy',
@@ -169,9 +168,7 @@ const RegistrationForm = () => {
   const [googlePayReady, setGooglePayReady] = useState<boolean>(false);
   const [googlePayButtonLoaded, setGooglePayButtonLoaded] = useState<boolean>(false);
 
-  // Initialize Google Pay when component mounts
   useEffect(() => {
-    // Load Google Pay API script
     const script = document.createElement('script');
     script.src = 'https://pay.google.com/gp/p/js/pay.js';
     script.async = true;
@@ -185,7 +182,6 @@ const RegistrationForm = () => {
     };
   }, []);
 
-  // Initialize Google Pay
   const initializeGooglePay = () => {
     if (!window.google || !window.google.payments) {
       console.error('Google Pay API not loaded');
@@ -193,7 +189,7 @@ const RegistrationForm = () => {
     }
 
     const paymentsClient = new window.google.payments.api.PaymentsClient({
-      environment: 'TEST', // Change to 'PRODUCTION' for live transactions
+      environment: 'TEST',
     });
 
     const isReadyToPayRequest = {
@@ -213,16 +209,12 @@ const RegistrationForm = () => {
         if (response.result) {
           setGooglePayReady(true);
           
-          // Create Google Pay button
           const googlePayButton = paymentsClient.createButton({ 
             onClick: onGooglePayButtonClicked,
             ...gpayButtonConfiguration
           });
           
-          // Store the paymentsClient in a data attribute on the window for later use
           window.googlePayClient = paymentsClient;
-          
-          // Store the button element for later injection
           window.googlePayButtonElement = googlePayButton;
           setGooglePayButtonLoaded(true);
         } else {
@@ -234,19 +226,16 @@ const RegistrationForm = () => {
       });
   };
 
-  // Insert Google Pay button into DOM when ready
   useEffect(() => {
     if (googlePayButtonLoaded && step === "payment") {
       const container = document.getElementById('google-pay-button-container');
       if (container && window.googlePayButtonElement) {
-        // Clear container first
         container.innerHTML = '';
         container.appendChild(window.googlePayButtonElement);
       }
     }
   }, [googlePayButtonLoaded, step]);
 
-  // Process payment with Google Pay
   const onGooglePayButtonClicked = () => {
     if (!window.googlePayClient) {
       console.error('Google Pay client not initialized');
@@ -287,11 +276,7 @@ const RegistrationForm = () => {
     window.googlePayClient.loadPaymentData(paymentDataRequest)
       .then((paymentData: any) => {
         setIsSubmitting(true);
-        // Process the received payment token
         const paymentToken = paymentData.paymentMethodData.tokenizationData.token;
-        
-        // In a real implementation, send this token to your server to process the payment
-        // Here we will simulate a successful payment and just use the token as transaction ID
         processGooglePayment(paymentToken);
       })
       .catch((error: any) => {
@@ -302,27 +287,19 @@ const RegistrationForm = () => {
       });
   };
 
-  // Process Google Pay payment token
   const processGooglePayment = async (paymentToken: string) => {
     try {
-      // In a production environment, you would send the token to your server
-      // and process the payment there, then verify it was successful
-      
-      // For now, we'll simulate a payment verification process
-      const tokenHash = btoa(paymentToken).substring(0, 20); // Generate a transaction ID from the token
+      const tokenHash = btoa(paymentToken).substring(0, 20);
       const transactionId = `GPAY-${Date.now()}-${tokenHash}`;
       
-      // In production, this would be an API call to verify the payment
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Simulate verifying payment with an edge function
       const { data, error } = await verifyUPIPayment(transactionId, currentRegistrationId);
       
       if (error) {
         throw new Error("Payment verification failed");
       }
       
-      // Save registration with Google Pay info
       completeRegistration(transactionId);
     } catch (error) {
       setRegistrationError("Payment verification failed. Please try again.");
@@ -505,7 +482,7 @@ const RegistrationForm = () => {
           amount: calculateTotalAmount(),
           lunchOption: formData.lunchOption,
           paymentMethod: "googlepay",
-          paymentStatus: "Verified", // Real-time verification already happened
+          paymentStatus: "Verified",
           transactionId: transactionId
         }
       };
@@ -789,37 +766,20 @@ const RegistrationForm = () => {
           </div>
         </div>
 
-        <Alert className="mb-6 bg-blue-50 border-blue-200 text-blue-700">
-          <AlertCircle className="h-4 w-4 text-blue-600" />
-          <AlertDescription>
-            Your registration will be confirmed immediately after your Google Pay payment is verified. The process is real-time.
-          </AlertDescription>
-        </Alert>
-
-        <div className="space-y-6">
-          <div>
-            <Label className="text-lg font-semibold">Pay with Google Pay</Label>
-            <div className="mt-4">
-              {googlePayReady ? (
-                <div>
-                  <div id="google-pay-button-container" className="flex justify-center"></div>
-                  {isSubmitting && (
-                    <div className="mt-4 text-center">
-                      <Loader className="inline-block animate-spin mr-2" size={20} />
-                      <span>Verifying payment...</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="p-4 text-center border border-gray-200 rounded-md">
-                  <Wallet className="inline-block mb-2 text-gray-500" size={36} />
-                  <p>Google Pay is not available on this device or browser.</p>
-                  <p className="text-sm text-gray-500 mt-1">Please use a supported browser or device.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <UPIPayment
+          amount={calculateTotalAmount()}
+          registrationId={currentRegistrationId}
+          onPaymentComplete={(success) => {
+            if (success) {
+              setRegistrationSuccess(true);
+              setTimeout(() => {
+                setFormData(initialForm);
+                setRegistrationSuccess(false);
+                setStep("details");
+              }, 3000);
+            }
+          }}
+        />
 
         <div className="flex flex-col sm:flex-row gap-3 pt-4">
           <Button
@@ -827,7 +787,6 @@ const RegistrationForm = () => {
             variant="outline"
             onClick={() => setStep("details")}
             className="flex-1"
-            disabled={isSubmitting}
           >
             Back to Details
           </Button>
@@ -891,7 +850,6 @@ const RegistrationForm = () => {
   );
 };
 
-// Add TypeScript declarations for Google Pay API
 declare global {
   interface Window {
     google?: {
