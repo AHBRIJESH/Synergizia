@@ -481,7 +481,7 @@ const RegistrationForm = () => {
         paymentDetails: {
           amount: calculateTotalAmount(),
           lunchOption: formData.lunchOption,
-          paymentMethod: "googlepay",
+          paymentMethod: "upi",
           paymentStatus: "Verified",
           transactionId: transactionId
         }
@@ -492,7 +492,7 @@ const RegistrationForm = () => {
       setRegistrationSuccess(true);
 
       toast.success("Registration Successful!", {
-        description: "Your payment has been verified and your registration is confirmed.",
+        description: `Your payment has been verified and your registration is confirmed. A confirmation will be sent to ${formData.email}.`,
       });
 
       setTimeout(() => {
@@ -764,11 +764,16 @@ const RegistrationForm = () => {
             <span>Total</span>
             <span>₹{calculateTotalAmount()}</span>
           </div>
+          
+          <div className="mt-4 pt-2 border-t border-gray-200">
+            <p className="text-sm text-gray-600">Confirmation will be sent to: <span className="font-medium">{formData.email}</span></p>
+          </div>
         </div>
 
         <UPIPayment
           amount={calculateTotalAmount()}
           registrationId={currentRegistrationId}
+          email={formData.email}
           onPaymentComplete={(success) => {
             if (success) {
               setRegistrationSuccess(true);

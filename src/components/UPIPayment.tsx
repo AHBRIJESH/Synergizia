@@ -12,12 +12,13 @@ import { Loader } from "lucide-react";
 interface UPIPaymentProps {
   amount: number;
   registrationId: string;
+  email: string; // Add email to the props
   onPaymentComplete: (success: boolean) => void;
 }
 
 const UPI_ID = "your.upi.id@bank"; // Replace with your actual UPI ID
 
-const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, registrationId, onPaymentComplete }) => {
+const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, registrationId, email, onPaymentComplete }) => {
   const [transactionId, setTransactionId] = React.useState("");
   const [isVerifying, setIsVerifying] = React.useState(false);
 
@@ -32,14 +33,15 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, registrationId, onPayme
     setIsVerifying(true);
 
     try {
-      const { data, error } = await verifyUPIPayment(transactionId, registrationId);
+      // Pass the email along with the transaction ID and registration ID
+      const { data, error } = await verifyUPIPayment(transactionId, registrationId, email);
 
       if (error) {
         throw error;
       }
 
       toast.success("Payment recorded successfully!", {
-        description: "Your payment is being verified. You'll receive a confirmation shortly."
+        description: `Your payment is being verified. A confirmation will be sent to ${email} shortly.`
       });
 
       onPaymentComplete(true);

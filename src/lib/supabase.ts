@@ -46,14 +46,22 @@ export async function callEdgeFunction(
 }
 
 // Function to verify UPI payment
-export async function verifyUPIPayment(transactionId: string, registrationId: string): Promise<FunctionResponse> {
+export async function verifyUPIPayment(
+  transactionId: string, 
+  registrationId: string,
+  email?: string
+): Promise<FunctionResponse> {
   // For development/testing, simulate successful verification
   if (!supabaseUrl || !supabaseAnonKey) {
     console.log('Using mocked UPI verification due to missing Supabase credentials');
     return new Promise(resolve => {
       setTimeout(() => {
         resolve({
-          data: { success: true, status: 'Verified' },
+          data: { 
+            success: true, 
+            status: 'Verified',
+            userEmail: email || 'user@example.com' // Include email in the mock response
+          },
           error: null
         });
       }, 1000);
@@ -63,6 +71,7 @@ export async function verifyUPIPayment(transactionId: string, registrationId: st
   return callEdgeFunction('verify-upi-payment', {
     transactionId,
     registrationId,
-    paymentMethod: 'upi'
+    paymentMethod: 'upi',
+    email: email // Pass the email to the edge function
   });
 }

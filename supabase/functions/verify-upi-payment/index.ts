@@ -6,6 +6,7 @@ interface PaymentVerificationRequest {
   transactionId: string;
   registrationId: string;
   paymentMethod: string;
+  email?: string; // Make email optional but available
 }
 
 serve(async (req) => {
@@ -16,7 +17,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get the request body
-    const { transactionId, registrationId, paymentMethod } = await req.json() as PaymentVerificationRequest;
+    const { transactionId, registrationId, paymentMethod, email } = await req.json() as PaymentVerificationRequest;
 
     if (!transactionId || !registrationId) {
       return new Response(
@@ -35,6 +36,7 @@ serve(async (req) => {
           amount: 0, // We'll update this after fetching registration details
           status: 'Pending',
           payment_method: 'upi',
+          payment_metadata: { email: email || null } // Store email in metadata
         }
       ])
       .select()
@@ -51,7 +53,7 @@ serve(async (req) => {
     // Get registration details to update payment amount
     const { data: registration, error: registrationError } = await supabase
       .from('registrations')
-      .select('payment_details')
+      .select('payment_details, email')
       .eq('id', registrationId)
       .single();
 
@@ -83,6 +85,15 @@ serve(async (req) => {
           }
         })
         .eq('id', registrationId);
+        
+      // Get the email either from the request or from the registration
+      const userEmail = email || registration.email || null;
+      
+      // If email exists, we could send a confirmation email here using a third-party service
+      if (userEmail) {
+        console.log(`Would send confirmation email to ${userEmail} for payment ${transactionId}`);
+        // This is where you would integrate with an email service like SendGrid or AWS SES
+      }
     }
 
     return new Response(
@@ -90,6 +101,7 @@ serve(async (req) => {
         success: true,
         status: 'Pending',
         paymentId: paymentData.id,
+        userEmail: email || registration?.email || null, // Return the email to the client
         upiDetails: {
           upiId: "your.upi.id@bank", // Replace with your actual UPI ID
           merchantName: "SYNERGIZIA25"
