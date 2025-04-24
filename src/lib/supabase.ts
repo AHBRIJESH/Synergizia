@@ -29,3 +29,11 @@ export async function callEdgeFunction(
     return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
   }
 }
+
+// Function to verify UPI payment
+export async function verifyUPIPayment(transactionId: string, registrationId: string) {
+  return callEdgeFunction('verify-upi-payment', {
+    transactionId,
+    registrationId
+  });
+}
