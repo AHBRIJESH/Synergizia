@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { toast } from "@/components/ui/sonner";
 import { verifyUPIPayment } from "@/lib/supabase";
 
+// Define a constant for localStorage key to match AdminDashboard
+export const LOCAL_STORAGE_KEY = 'synergizia_registrations';
+
 interface FormData {
   fullName: string;
   college: string;
@@ -69,14 +72,14 @@ export const useRegistration = () => {
   };
 
   const getRegistrations = (): RegistrationData[] => {
-    const data = localStorage.getItem('synergizia_registrations');
+    const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     return data ? JSON.parse(data) : [];
   };
 
   const saveRegistration = (registration: RegistrationData) => {
     const registrations = getRegistrations();
     localStorage.setItem(
-      'synergizia_registrations',
+      LOCAL_STORAGE_KEY,
       JSON.stringify([...registrations, registration])
     );
   };
