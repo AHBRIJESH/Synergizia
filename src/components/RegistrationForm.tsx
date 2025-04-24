@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { toast } from "@/components/ui/sonner";
 import {
@@ -24,6 +23,7 @@ import { Event } from "./EventCard";
 import { AlertCircle, CheckCircle, Loader, CreditCard, IndianRupee } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import RazorpayPayment from "./RazorpayPayment";
 
 interface TimeSlot {
   time: string;
@@ -160,17 +160,15 @@ const RegistrationForm = () => {
   );
   const [registrationSuccess, setRegistrationSuccess] =
     useState<boolean>(false);
-  const [showPaymentSection, setShowPaymentSection] = useState(false);
   const [step, setStep] = useState<"details" | "payment">("details");
   const [transactionId, setTransactionId] = useState<string>("");
+  const [currentRegistrationId, setCurrentRegistrationId] = useState<string>("");
 
-  // Load existing registrations from localStorage
   const getRegistrations = (): RegistrationData[] => {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     return data ? JSON.parse(data) : [];
   };
 
-  // Save registrations to localStorage
   const saveRegistration = (registration: RegistrationData) => {
     const registrations = getRegistrations();
     localStorage.setItem(
@@ -246,7 +244,6 @@ const RegistrationForm = () => {
   };
 
   const validatePhoneFormat = (phone: string): boolean => {
-    // Basic validation for phone - at least 10 digits
     const phoneRegex = /^\d{10,15}$/;
     return phoneRegex.test(phone);
   };
@@ -259,10 +256,8 @@ const RegistrationForm = () => {
   };
 
   const calculateTotalAmount = (): number => {
-    // Base price for events - 100 rupees
     let total = formData.selectedEvents.length > 0 ? 100 : 0;
 
-    // Add lunch cost if selected
     if (formData.lunchOption === "veg") {
       total += 50;
     } else if (formData.lunchOption === "nonveg") {
@@ -275,7 +270,6 @@ const RegistrationForm = () => {
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate all required fields
     if (
       !formData.fullName ||
       !formData.college ||
@@ -296,7 +290,6 @@ const RegistrationForm = () => {
       return;
     }
 
-    // Validate email format
     if (!validateEmailFormat(formData.email)) {
       setRegistrationError("Please enter a valid email address.");
       toast.error("Validation Error", {
@@ -305,7 +298,6 @@ const RegistrationForm = () => {
       return;
     }
 
-    // Validate phone format
     if (!validatePhoneFormat(formData.phone)) {
       setRegistrationError(
         "Please enter a valid phone number (10-15 digits only)."
@@ -316,7 +308,6 @@ const RegistrationForm = () => {
       return;
     }
 
-    // Check if email already exists
     if (checkIfEmailExists(formData.email)) {
       setRegistrationError(
         "This email is already registered. Please use a different email."
@@ -328,12 +319,65 @@ const RegistrationForm = () => {
       return;
     }
 
-    // All validations passed, proceed to payment
+    const registrationId = `REG-${Date.now()}`;
+    setCurrentRegistrationId(registrationId);
+
     setRegistrationError(null);
     setStep("payment");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRazorpaySuccess = (paymentId: string) => {
+    setTransactionId(paymentId);
+    completeRegistration(paymentId);
+  };
+
+  const handleRazorpayFailure = () => {
+    setIsSubmitting(false);
+  };
+
+  const completeRegistration = (paymentId: string) => {
+    try {
+      const registration: RegistrationData = {
+        ...formData,
+        id: currentRegistrationId,
+        registrationDate: new Date().toISOString(),
+        paymentDetails: {
+          amount: calculateTotalAmount(),
+          lunchOption: formData.lunchOption,
+          paymentMethod: "razorpay",
+          paymentStatus: "Pending",
+          transactionId: paymentId
+        }
+      };
+
+      saveRegistration(registration);
+
+      setRegistrationSuccess(true);
+
+      toast.success("Registration Submitted!", {
+        description: "Your registration has been submitted. You will receive a confirmation email shortly.",
+      });
+
+      setTimeout(() => {
+        setFormData(initialForm);
+        setRegistrationSuccess(false);
+        setStep("details");
+        setTransactionId("");
+        setIsSubmitting(false);
+      }, 3000);
+    } catch (error) {
+      setRegistrationError(
+        "There was an error with your registration. Please try again."
+      );
+      toast.error("Registration Failed", {
+        description:
+          "There was an error with your registration. Please try again.",
+      });
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleManualPayment = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.paymentMethod) {
@@ -344,7 +388,6 @@ const RegistrationForm = () => {
       return;
     }
 
-    // For UPI payments, require a transaction ID
     if (formData.paymentMethod === "upi" && !transactionId) {
       setRegistrationError("Please enter your UPI transaction ID for verification.");
       toast.error("Payment Error", {
@@ -356,34 +399,29 @@ const RegistrationForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Simulate a server request
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Create registration object with unique ID, timestamp, and payment details
       const registration: RegistrationData = {
         ...formData,
-        id: `REG-${Date.now()}`,
+        id: currentRegistrationId || `REG-${Date.now()}`,
         registrationDate: new Date().toISOString(),
         paymentDetails: {
           amount: calculateTotalAmount(),
           lunchOption: formData.lunchOption,
           paymentMethod: formData.paymentMethod,
-          paymentStatus: "Pending", // Initial status is pending until verified by admin
+          paymentStatus: "Pending",
           transactionId: formData.paymentMethod === "upi" ? transactionId : undefined
         }
       };
 
-      // Save registration with pending payment status
       saveRegistration(registration);
 
-      // Set success state
       setRegistrationSuccess(true);
 
       toast.success("Registration Submitted!", {
         description: "Your registration has been submitted and is awaiting payment verification.",
       });
 
-      // Reset form after a delay to show success message
       setTimeout(() => {
         setFormData(initialForm);
         setRegistrationSuccess(false);
@@ -637,7 +675,7 @@ const RegistrationForm = () => {
 
   const renderPaymentForm = () => {
     return (
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleManualPayment} className="space-y-6">
         <div className="bg-gray-50 p-4 rounded-lg mb-6">
           <h3 className="text-lg font-semibold mb-2">Registration Summary</h3>
           <div className="flex justify-between mb-2">
@@ -671,11 +709,36 @@ const RegistrationForm = () => {
               onValueChange={(value) => handleSelectChange("paymentMethod", value)}
               className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3"
             >
+              <div className={`border rounded-lg p-4 cursor-pointer ${formData.paymentMethod === "razorpay" ? "border-synergizia-purple bg-purple-50" : "border-gray-200"}`}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="razorpay" id="payment-razorpay" />
+                  <Label htmlFor="payment-razorpay" className="cursor-pointer flex items-center">
+                    <CreditCard className="w-5 h-5 mr-2" /> Razorpay (Instant)
+                  </Label>
+                </div>
+                {formData.paymentMethod === "razorpay" && (
+                  <div className="mt-3 pl-6">
+                    <p className="text-sm text-gray-600 mb-3">Pay securely with credit/debit cards, UPI, net banking and more</p>
+                    <RazorpayPayment 
+                      amount={calculateTotalAmount()}
+                      name={formData.fullName}
+                      email={formData.email}
+                      phone={formData.phone}
+                      registrationId={currentRegistrationId}
+                      onSuccess={handleRazorpaySuccess}
+                      onFailure={handleRazorpayFailure}
+                      isProcessing={isSubmitting}
+                      setIsProcessing={setIsSubmitting}
+                    />
+                  </div>
+                )}
+              </div>
+              
               <div className={`border rounded-lg p-4 cursor-pointer ${formData.paymentMethod === "upi" ? "border-synergizia-purple bg-purple-50" : "border-gray-200"}`}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="upi" id="payment-upi" />
                   <Label htmlFor="payment-upi" className="cursor-pointer flex items-center">
-                    <IndianRupee className="w-5 h-5 mr-2" /> UPI Payment
+                    <IndianRupee className="w-5 h-5 mr-2" /> UPI/Bank Transfer (Manual)
                   </Label>
                 </div>
                 {formData.paymentMethod === "upi" && (
@@ -685,49 +748,34 @@ const RegistrationForm = () => {
                       <p><span className="font-medium">Account Holder:</span> K.Karthika</p>
                       <p><span className="font-medium">Account Number:</span> 20144174214</p>
                       <p><span className="font-medium">IFSC Code:</span> SBIN0003925</p>
+                      <p><span className="font-medium">Bank Name:</span> State Bank of India</p>
                     </div>
                     <div className="mt-3 space-y-2">
-                      <Label htmlFor="transactionId">UPI Transaction ID *</Label>
+                      <Label htmlFor="transactionId">UPI/Bank Transaction ID *</Label>
                       <Input 
                         id="transactionId"
-                        placeholder="Enter your UPI transaction ID" 
+                        placeholder="Enter your transaction ID" 
                         value={transactionId}
                         onChange={(e) => setTransactionId(e.target.value)}
                         required={formData.paymentMethod === "upi"}
                       />
                       <p className="text-xs text-gray-500">Please provide the transaction ID for payment verification</p>
                     </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className={`border rounded-lg p-4 cursor-pointer ${formData.paymentMethod === "card" ? "border-synergizia-purple bg-purple-50" : "border-gray-200"}`}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="card" id="payment-card" />
-                  <Label htmlFor="payment-card" className="cursor-pointer flex items-center">
-                    <CreditCard className="w-5 h-5 mr-2" /> Credit/Debit Card
-                  </Label>
-                </div>
-                {formData.paymentMethod === "card" && (
-                  <div className="mt-3 pl-6 space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="cardNumber">Card Number</Label>
-                      <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="expiry">Expiry Date</Label>
-                        <Input id="expiry" placeholder="MM/YY" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cvv">CVV</Label>
-                        <Input id="cvv" placeholder="123" type="password" maxLength={3} />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="nameOnCard">Name on Card</Label>
-                      <Input id="nameOnCard" placeholder="John Doe" />
-                    </div>
+                    
+                    <Button
+                      type="submit"
+                      className="w-full mt-3 bg-synergizia-purple hover:bg-synergizia-purple-dark"
+                      disabled={isSubmitting || !transactionId}
+                    >
+                      {isSubmitting ? (
+                        <span className="flex items-center">
+                          <Loader className="animate-spin mr-2" size={16} />{" "}
+                          Processing...
+                        </span>
+                      ) : (
+                        `Submit Registration`
+                      )}
+                    </Button>
                   </div>
                 )}
               </div>
@@ -744,20 +792,6 @@ const RegistrationForm = () => {
             disabled={isSubmitting}
           >
             Back to Details
-          </Button>
-          <Button
-            type="submit"
-            className="flex-1 bg-synergizia-purple hover:bg-synergizia-purple-dark"
-            disabled={isSubmitting || !formData.paymentMethod || (formData.paymentMethod === "upi" && !transactionId)}
-          >
-            {isSubmitting ? (
-              <span className="flex items-center">
-                <Loader className="animate-spin mr-2" size={16} />{" "}
-                Processing...
-              </span>
-            ) : (
-              `Submit Registration`
-            )}
           </Button>
         </div>
       </form>
