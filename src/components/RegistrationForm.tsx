@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { toast } from "@/components/ui/sonner";
 import {
@@ -20,8 +21,9 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Event } from "./EventCard";
-import { AlertCircle, CheckCircle, Loader } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader, CreditCard, IndianRupee } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface TimeSlot {
   time: string;
@@ -119,11 +121,19 @@ interface FormData {
   email: string;
   phone: string;
   selectedEvents: string[];
+  lunchOption: string;
+  paymentMethod: string;
 }
 
 interface RegistrationData extends FormData {
   id: string;
   registrationDate: string;
+  paymentDetails: {
+    amount: number;
+    lunchOption: string;
+    paymentMethod: string;
+    paymentStatus: string;
+  };
 }
 
 const initialForm: FormData = {
@@ -135,6 +145,8 @@ const initialForm: FormData = {
   email: "",
   phone: "",
   selectedEvents: [],
+  lunchOption: "",
+  paymentMethod: "",
 };
 
 const LOCAL_STORAGE_KEY = "synergizia_registrations";
@@ -147,6 +159,8 @@ const RegistrationForm = () => {
   );
   const [registrationSuccess, setRegistrationSuccess] =
     useState<boolean>(false);
+  const [showPaymentSection, setShowPaymentSection] = useState(false);
+  const [step, setStep] = useState<"details" | "payment">("details");
 
   // Load existing registrations from localStorage
   const getRegistrations = (): RegistrationData[] => {
@@ -242,9 +256,22 @@ const RegistrationForm = () => {
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const calculateTotalAmount = (): number => {
+    // Base price for events - 100 rupees
+    let total = formData.selectedEvents.length > 0 ? 100 : 0;
+
+    // Add lunch cost if selected
+    if (formData.lunchOption === "veg") {
+      total += 50;
+    } else if (formData.lunchOption === "nonveg") {
+      total += 60;
+    }
+
+    return total;
+  };
+
+  const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    setRegistrationError(null);
 
     // Validate all required fields
     if (
@@ -299,17 +326,39 @@ const RegistrationForm = () => {
       return;
     }
 
+    // All validations passed, proceed to payment
+    setRegistrationError(null);
+    setStep("payment");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.paymentMethod) {
+      setRegistrationError("Please select a payment method.");
+      toast.error("Payment Error", {
+        description: "Please select a payment method.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       // Simulate a server request
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Create registration object with unique ID and timestamp
+      // Create registration object with unique ID, timestamp, and payment details
       const registration: RegistrationData = {
         ...formData,
         id: `REG-${Date.now()}`,
         registrationDate: new Date().toISOString(),
+        paymentDetails: {
+          amount: calculateTotalAmount(),
+          lunchOption: formData.lunchOption,
+          paymentMethod: formData.paymentMethod,
+          paymentStatus: "Completed" // In a real app, this might be "Pending" until confirmed
+        }
       };
 
       // Save registration
@@ -326,6 +375,7 @@ const RegistrationForm = () => {
       setTimeout(() => {
         setFormData(initialForm);
         setRegistrationSuccess(false);
+        setStep("details");
       }, 3000);
     } catch (error) {
       setRegistrationError(
@@ -338,6 +388,349 @@ const RegistrationForm = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const renderPersonalDetailsForm = () => {
+    return (
+      <form onSubmit={handleProceedToPayment} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name *</Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="college">College Name *</Label>
+              <Input
+                id="college"
+                name="college"
+                value={formData.college}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department">Department *</Label>
+              <Select
+                value={formData.department}
+                onValueChange={(value) =>
+                  handleSelectChange("department", value)
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="computer_science">
+                      Computer Science
+                    </SelectItem>
+                    <SelectItem value="information_technology">
+                      Information Technology
+                    </SelectItem>
+                    <SelectItem value="electronics">
+                      Electronics & Communication
+                    </SelectItem>
+                    <SelectItem value="electrical">
+                      Electrical Engineering
+                    </SelectItem>
+                    <SelectItem value="mechanical">
+                      Mechanical Engineering
+                    </SelectItem>
+                    <SelectItem value="civil">
+                      Civil Engineering
+                    </SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.department === "other" && (
+              <div className="space-y-2">
+                <Label htmlFor="customDepartment">
+                  Specify Department *
+                </Label>
+                <Input
+                  id="customDepartment"
+                  name="customDepartment"
+                  value={formData.customDepartment}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter your department"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="year">Year of Study *</Label>
+              <Select
+                value={formData.year}
+                onValueChange={(value) =>
+                  handleSelectChange("year", value)
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select year" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="1">First Year</SelectItem>
+                    <SelectItem value="2">Second Year</SelectItem>
+                    <SelectItem value="3">Third Year</SelectItem>
+                    <SelectItem value="4">Fourth Year</SelectItem>
+                    <SelectItem value="pg">Postgraduate</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                required
+                placeholder="Enter 10-15 digit number"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label>Select Events *</Label>
+              <div className="grid grid-cols-1 gap-2">
+                {Object.entries(timeSlots).map(([time, eventNames]) => (
+                  <div key={time} className="space-y-2">
+                    <div className="text-sm font-medium text-gray-500">
+                      {time}
+                    </div>
+                    <div className="flex flex-col gap-2 pl-4 border-l-2 border-gray-200">
+                      {eventNames.map((name) => {
+                        const isSelected =
+                          formData.selectedEvents.includes(name);
+                        const isDisabled =
+                          !isSelected && isEventDisabled(name);
+
+                        return (
+                          <div
+                            key={name}
+                            className="flex items-center space-x-2"
+                          >
+                            <Checkbox
+                              id={`event-${name}`}
+                              checked={isSelected}
+                              onCheckedChange={(checked) => {
+                                handleEventChange(name, checked === true);
+                              }}
+                              disabled={isDisabled}
+                            />
+                            <Label
+                              htmlFor={`event-${name}`}
+                              className={
+                                isDisabled ? "text-gray-400" : ""
+                              }
+                            >
+                              {name}
+                            </Label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {formData.selectedEvents.length === 0 && (
+                <p className="text-sm text-red-500">
+                  Please select at least one event.
+                </p>
+              )}
+            </div>
+            
+            <div className="space-y-3">
+              <Label>Lunch Option</Label>
+              <RadioGroup 
+                value={formData.lunchOption}
+                onValueChange={(value) => handleSelectChange("lunchOption", value)}
+                className="flex flex-col space-y-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="veg" id="lunch-veg" />
+                  <Label htmlFor="lunch-veg">Vegetarian (₹50)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="nonveg" id="lunch-nonveg" />
+                  <Label htmlFor="lunch-nonveg">Non-Vegetarian (₹60)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="" id="lunch-none" />
+                  <Label htmlFor="lunch-none">No lunch required</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <p className="text-lg font-semibold">Registration Summary</p>
+              <p className="text-sm text-gray-500">Events and lunch selection</p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-bold">Total: ₹{calculateTotalAmount()}</p>
+              <p className="text-sm text-gray-500">
+                Events: ₹{formData.selectedEvents.length > 0 ? 100 : 0} | 
+                Lunch: ₹{formData.lunchOption === "veg" ? 50 : (formData.lunchOption === "nonveg" ? 60 : 0)}
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full bg-synergizia-purple hover:bg-synergizia-purple-dark"
+            disabled={isSubmitting || formData.selectedEvents.length === 0}
+          >
+            Proceed to Payment
+          </Button>
+        </div>
+      </form>
+    );
+  };
+
+  const renderPaymentForm = () => {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-gray-50 p-4 rounded-lg mb-6">
+          <h3 className="text-lg font-semibold mb-2">Registration Summary</h3>
+          <div className="flex justify-between mb-2">
+            <span>Events ({formData.selectedEvents.length})</span>
+            <span>₹100</span>
+          </div>
+          {formData.lunchOption && (
+            <div className="flex justify-between mb-2">
+              <span>Lunch ({formData.lunchOption === "veg" ? "Vegetarian" : "Non-Vegetarian"})</span>
+              <span>₹{formData.lunchOption === "veg" ? 50 : 60}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold pt-2 border-t border-gray-300 mt-2">
+            <span>Total</span>
+            <span>₹{calculateTotalAmount()}</span>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div>
+            <Label className="text-lg font-semibold">Select Payment Method</Label>
+            <RadioGroup 
+              value={formData.paymentMethod}
+              onValueChange={(value) => handleSelectChange("paymentMethod", value)}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3"
+            >
+              <div className={`border rounded-lg p-4 cursor-pointer ${formData.paymentMethod === "upi" ? "border-synergizia-purple bg-purple-50" : "border-gray-200"}`}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="upi" id="payment-upi" />
+                  <Label htmlFor="payment-upi" className="cursor-pointer flex items-center">
+                    <IndianRupee className="w-5 h-5 mr-2" /> UPI Payment
+                  </Label>
+                </div>
+                {formData.paymentMethod === "upi" && (
+                  <div className="mt-3 pl-6">
+                    <div className="bg-white p-3 rounded border text-sm">
+                      <p className="font-semibold mb-2">Bank Account Details:</p>
+                      <p><span className="font-medium">Account Holder:</span> K.Karthika</p>
+                      <p><span className="font-medium">Account Number:</span> 20144174214</p>
+                      <p><span className="font-medium">IFSC Code:</span> SBIN0003925</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className={`border rounded-lg p-4 cursor-pointer ${formData.paymentMethod === "card" ? "border-synergizia-purple bg-purple-50" : "border-gray-200"}`}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="card" id="payment-card" />
+                  <Label htmlFor="payment-card" className="cursor-pointer flex items-center">
+                    <CreditCard className="w-5 h-5 mr-2" /> Credit/Debit Card
+                  </Label>
+                </div>
+                {formData.paymentMethod === "card" && (
+                  <div className="mt-3 pl-6 space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="cardNumber">Card Number</Label>
+                      <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="expiry">Expiry Date</Label>
+                        <Input id="expiry" placeholder="MM/YY" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="cvv">CVV</Label>
+                        <Input id="cvv" placeholder="123" type="password" maxLength={3} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="nameOnCard">Name on Card</Label>
+                      <Input id="nameOnCard" placeholder="John Doe" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </RadioGroup>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setStep("details")}
+            className="flex-1"
+            disabled={isSubmitting}
+          >
+            Back to Details
+          </Button>
+          <Button
+            type="submit"
+            className="flex-1 bg-synergizia-purple hover:bg-synergizia-purple-dark"
+            disabled={isSubmitting || !formData.paymentMethod}
+          >
+            {isSubmitting ? (
+              <span className="flex items-center">
+                <Loader className="animate-spin mr-2" size={16} />{" "}
+                Processing...
+              </span>
+            ) : (
+              `Pay ₹${calculateTotalAmount()}`
+            )}
+          </Button>
+        </div>
+      </form>
+    );
   };
 
   return (
@@ -359,6 +752,15 @@ const RegistrationForm = () => {
             <CardDescription>
               Fill in your details to register for the symposium
             </CardDescription>
+            
+            <div className="flex items-center mt-4">
+              <div className={`flex-1 pb-2 border-b-2 ${step === "details" ? "border-synergizia-purple text-synergizia-purple font-medium" : "border-gray-200 text-gray-400"}`}>
+                1. Personal Details
+              </div>
+              <div className={`flex-1 pb-2 border-b-2 ${step === "payment" ? "border-synergizia-purple text-synergizia-purple font-medium" : "border-gray-200 text-gray-400"}`}>
+                2. Payment
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {registrationError && (
@@ -378,202 +780,7 @@ const RegistrationForm = () => {
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name *</Label>
-                    <Input
-                      id="fullName"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="college">College Name *</Label>
-                    <Input
-                      id="college"
-                      name="college"
-                      value={formData.college}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="department">Department *</Label>
-                    <Select
-                      value={formData.department}
-                      onValueChange={(value) =>
-                        handleSelectChange("department", value)
-                      }
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="computer_science">
-                            Computer Science
-                          </SelectItem>
-                          <SelectItem value="information_technology">
-                            Information Technology
-                          </SelectItem>
-                          <SelectItem value="electronics">
-                            Electronics & Communication
-                          </SelectItem>
-                          <SelectItem value="electrical">
-                            Electrical Engineering
-                          </SelectItem>
-                          <SelectItem value="mechanical">
-                            Mechanical Engineering
-                          </SelectItem>
-                          <SelectItem value="civil">
-                            Civil Engineering
-                          </SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {formData.department === "other" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="customDepartment">
-                        Specify Department *
-                      </Label>
-                      <Input
-                        id="customDepartment"
-                        name="customDepartment"
-                        value={formData.customDepartment}
-                        onChange={handleChange}
-                        required
-                        placeholder="Enter your department"
-                      />
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="year">Year of Study *</Label>
-                    <Select
-                      value={formData.year}
-                      onValueChange={(value) =>
-                        handleSelectChange("year", value)
-                      }
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select year" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="1">First Year</SelectItem>
-                          <SelectItem value="2">Second Year</SelectItem>
-                          <SelectItem value="3">Third Year</SelectItem>
-                          <SelectItem value="4">Fourth Year</SelectItem>
-                          <SelectItem value="pg">Postgraduate</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number *</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      required
-                      placeholder="Enter 10-15 digit number"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label>Select Events *</Label>
-                    <div className="grid grid-cols-1 gap-2">
-                      {Object.entries(timeSlots).map(([time, eventNames]) => (
-                        <div key={time} className="space-y-2">
-                          <div className="text-sm font-medium text-gray-500">
-                            {time}
-                          </div>
-                          <div className="flex flex-col gap-2 pl-4 border-l-2 border-gray-200">
-                            {eventNames.map((name) => {
-                              const isSelected =
-                                formData.selectedEvents.includes(name);
-                              const isDisabled =
-                                !isSelected && isEventDisabled(name);
-
-                              return (
-                                <div
-                                  key={name}
-                                  className="flex items-center space-x-2"
-                                >
-                                  <Checkbox
-                                    id={`event-${name}`}
-                                    checked={isSelected}
-                                    onCheckedChange={(checked) => {
-                                      handleEventChange(name, checked === true);
-                                    }}
-                                    disabled={isDisabled}
-                                  />
-                                  <Label
-                                    htmlFor={`event-${name}`}
-                                    className={
-                                      isDisabled ? "text-gray-400" : ""
-                                    }
-                                  >
-                                    {name}
-                                  </Label>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {formData.selectedEvents.length === 0 && (
-                      <p className="text-sm text-red-500">
-                        Please select at least one event.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-synergizia-purple hover:bg-synergizia-purple-dark"
-                disabled={isSubmitting || formData.selectedEvents.length === 0}
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center">
-                    <Loader className="animate-spin mr-2" size={16} />{" "}
-                    Registering...
-                  </span>
-                ) : (
-                  "Register Now"
-                )}
-              </Button>
-            </form>
+            {step === "details" ? renderPersonalDetailsForm() : renderPaymentForm()}
           </CardContent>
         </Card>
       </div>

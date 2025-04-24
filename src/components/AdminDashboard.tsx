@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +11,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Download, LogOut } from "lucide-react";
+import { Search, Download, LogOut, Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Shared local storage key with registration form
 const LOCAL_STORAGE_KEY = "synergizia_registrations";
@@ -27,6 +39,12 @@ interface Registration {
   phone: string;
   selectedEvents: string[];
   registrationDate: string;
+  paymentDetails?: {
+    amount: number;
+    lunchOption?: string;
+    paymentMethod: string;
+    paymentStatus: string;
+  };
 }
 
 interface AdminDashboardProps {
@@ -98,6 +116,10 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
       "Phone",
       "Events",
       "Registration Date",
+      "Payment Amount",
+      "Lunch Option",
+      "Payment Method",
+      "Payment Status"
     ];
 
     const rows = filteredRegistrations.map((reg) => [
@@ -110,6 +132,10 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
       reg.phone,
       reg.selectedEvents.join(", "),
       new Date(reg.registrationDate).toLocaleString(),
+      reg.paymentDetails?.amount || "-",
+      reg.paymentDetails?.lunchOption || "-",
+      reg.paymentDetails?.paymentMethod || "-",
+      reg.paymentDetails?.paymentStatus || "-"
     ]);
 
     const csvContent = [
@@ -129,6 +155,16 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Clear all registrations
+  const handleClearRegistrations = () => {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    setRegistrations([]);
+    setFilteredRegistrations([]);
+    toast.success("All registrations cleared", {
+      description: "Registration data has been removed.",
+    });
   };
 
   const getDepartmentName = (code: string): string => {
@@ -205,6 +241,33 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
               >
                 <Download className="mr-2 h-4 w-4" /> Download CSV
               </Button>
+              
+              {/* Alert Dialog for Clear Registrations */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    disabled={registrations.length === 0}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Clear Registrations
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear All Registrations?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      If you click OK, all registration entries will be permanently lost.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearRegistrations}>
+                      OK
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
 
@@ -222,6 +285,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Registered Events</TableHead>
+                  <TableHead>Payment</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -249,11 +313,39 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                           ))}
                         </div>
                       </TableCell>
+                      <TableCell>
+                        {reg.paymentDetails ? (
+                          <div className="space-y-1">
+                            <p className="text-sm">
+                              <span className="font-medium">Amount:</span> ₹{reg.paymentDetails.amount}
+                            </p>
+                            {reg.paymentDetails.lunchOption && (
+                              <p className="text-sm">
+                                <span className="font-medium">Lunch:</span> {reg.paymentDetails.lunchOption}
+                              </p>
+                            )}
+                            <p className="text-sm">
+                              <span className="font-medium">Method:</span> {reg.paymentDetails.paymentMethod}
+                            </p>
+                            <p className="text-sm">
+                              <span className={`font-medium ${
+                                reg.paymentDetails.paymentStatus === "Completed" 
+                                  ? "text-green-600" 
+                                  : "text-amber-600"
+                              }`}>
+                                Status: {reg.paymentDetails.paymentStatus}
+                              </span>
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">No payment info</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       No registrations found matching your search.
                     </TableCell>
                   </TableRow>
