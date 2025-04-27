@@ -11,8 +11,7 @@ interface PaymentVerificationRequest {
 }
 
 const sendConfirmationEmail = async (userEmail: string, registrationId: string, transactionId: string, eventDetails: any, amount: number) => {
-  try {
-    // Get email configuration from environment variables
+  try {    // Get email configuration from environment variables
     const smtpHost = Deno.env.get('SMTP_HOST') || 'smtp.example.com';
     const smtpPort = parseInt(Deno.env.get('SMTP_PORT') || '587');
     const smtpUser = Deno.env.get('SMTP_USER') || 'user@example.com';
@@ -35,6 +34,7 @@ const sendConfirmationEmail = async (userEmail: string, registrationId: string, 
     });
 
     // Format selected events for the email
+    const hasPaperPresentation = eventDetails?.selectedEvents?.includes('Paper Presentation (IoT in Smart City)');
     const eventsList = eventDetails?.selectedEvents?.map((event: string) => `• ${event}`).join('\n') || 'No events selected';
     const lunchOption = eventDetails?.lunchOption === 'veg' ? 'Vegetarian (₹50)' : 
                         (eventDetails?.lunchOption === 'nonveg' ? 'Non-Vegetarian (₹60)' : 'None');
@@ -50,6 +50,7 @@ const sendConfirmationEmail = async (userEmail: string, registrationId: string, 
         .header { background-color: #6d28d9; color: white; padding: 20px; text-align: center; }
         .content { padding: 20px; border: 1px solid #ddd; }
         .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        .important-note { background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; margin: 15px 0; border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #f2f2f2; }
@@ -82,6 +83,14 @@ const sendConfirmationEmail = async (userEmail: string, registrationId: string, 
           
           <h2>Event Selections</h2>
           <p>${eventsList}</p>
+          
+          ${hasPaperPresentation ? `
+          <div class="important-note">
+            <strong>Important Note for Paper Presentation:</strong><br>
+            Please submit your paper to <strong>synergizia@rgce.edu.in</strong> before May 12th, 2025.<br>
+            Papers submitted after the deadline may not be considered for presentation.
+          </div>
+          ` : ''}
           
           <h2>Lunch Option</h2>
           <p>${lunchOption}</p>

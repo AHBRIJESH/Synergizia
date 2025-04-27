@@ -1,10 +1,15 @@
-
-import React from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import React from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { verifyUPIPayment } from "@/lib/supabase";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader } from "lucide-react";
@@ -16,9 +21,14 @@ interface UPIPaymentProps {
   onPaymentComplete: (success: boolean) => void;
 }
 
-const UPI_ID = "your.upi.id@bank"; // Replace with your actual UPI ID
+const UPI_ID = "ahbrijesh2004@okhdfcbank"; // Replace with your actual UPI ID
 
-const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, registrationId, email, onPaymentComplete }) => {
+const UPIPayment: React.FC<UPIPaymentProps> = ({
+  amount,
+  registrationId,
+  email,
+  onPaymentComplete,
+}) => {
   const [transactionId, setTransactionId] = React.useState("");
   const [isVerifying, setIsVerifying] = React.useState(false);
 
@@ -34,21 +44,25 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, registrationId, email, 
 
     try {
       // Pass the email along with the transaction ID and registration ID
-      const { data, error } = await verifyUPIPayment(transactionId, registrationId, email);
+      const { data, error } = await verifyUPIPayment(
+        transactionId,
+        registrationId,
+        email
+      );
 
       if (error) {
         throw error;
       }
 
       toast.success("Payment recorded successfully!", {
-        description: `Your payment is being verified. A confirmation email will be sent to ${email} shortly with all details.`
+        description: `Your payment is being verified. A confirmation email will be sent to ${email} shortly with all details.`,
       });
 
       onPaymentComplete(true);
     } catch (error) {
-      console.error('Payment verification failed:', error);
+      console.error("Payment verification failed:", error);
       toast.error("Payment verification failed", {
-        description: "Please ensure you've entered the correct transaction ID"
+        description: "Please ensure you've entered the correct transaction ID",
       });
       onPaymentComplete(false);
     } finally {
@@ -60,16 +74,16 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, registrationId, email, 
     <Card>
       <CardHeader>
         <CardTitle>UPI Payment</CardTitle>
-        <CardDescription>
-          Pay ₹{amount} using any UPI app
-        </CardDescription>
+        <CardDescription>Pay ₹{amount} using any UPI app</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-col items-center space-y-4">
           <QRCodeSVG value={upiPaymentLink} size={200} />
-          <p className="text-sm text-gray-500">Scan QR code or click button below to pay</p>
+          <p className="text-sm text-gray-500">
+            Scan QR code or click button below to pay
+          </p>
           <Button
-            onClick={() => window.location.href = upiPaymentLink}
+            onClick={() => (window.location.href = upiPaymentLink)}
             className="w-full"
           >
             Pay with UPI App
@@ -98,12 +112,13 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({ amount, registrationId, email, 
                 Verifying Payment
               </>
             ) : (
-              'Verify Payment'
+              "Verify Payment"
             )}
           </Button>
-          
+
           <p className="text-sm text-gray-500 mt-2">
-            After verification, a confirmation email with all details will be sent to {email}
+            After verification, a confirmation email with all details will be
+            sent to {email}
           </p>
         </div>
       </CardContent>

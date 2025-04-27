@@ -1,8 +1,34 @@
 import React from "react";
 import { scrollToSection } from "@/lib/scroll";
-import { Mail, Phone, MapPin, ArrowRight } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  ArrowRight,
+  Linkedin,
+  Facebook,
+  Instagram,
+} from "lucide-react";
 
 const Footer = () => {
+  const socialLinks = [
+    {
+      Icon: Linkedin,
+      href: "https://www.linkedin.com/school/rgce-linkedin/?viewAsMember=true",
+      label: "LinkedIn",
+    },
+    {
+      Icon: Facebook,
+      href: "https://www.facebook.com/people/Rajiv-Gandhi-College-of-Engineering/61573594305771/",
+      label: "Facebook",
+    },
+    {
+      Icon: Instagram,
+      href: "https://www.instagram.com/rgce_official/?igsh=MWkycXJzcGY5ZmlycA%3D%3D#",
+      label: "Instagram",
+    },
+  ];
+
   return (
     <footer className="bg-gray-900 text-white pt-12 pb-6">
       <div className="container mx-auto px-4">
@@ -18,14 +44,16 @@ const Footer = () => {
               day of learning and competition.
             </p>
             <div className="flex space-x-4">
-              {["#", "#", "#"].map((link, i) => (
+              {socialLinks.map(({ Icon, href, label }) => (
                 <a
-                  key={i}
-                  href={link}
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-gray-800 hover:bg-synergizia-purple transition-colors h-8 w-8 rounded-full flex items-center justify-center"
                 >
-                  <span className="sr-only">Social Media</span>
-                  <div className="h-4 w-4 bg-white mask-image-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWZhY2Vib29rIj48cGF0aCBkPSJNMTggMmgtM2E1IDUgMCAwIDAtNSA1djNIN3Y0aDN2OGg0di04aDNsMS00aC00VjdhMSAxIDAgMCAxIDEtMWgzeiIvPjwvc3ZnPg==')]"></div>
+                  <span className="sr-only">{label}</span>
+                  <Icon className="h-4 w-4 text-white" />
                 </a>
               ))}
             </div>
