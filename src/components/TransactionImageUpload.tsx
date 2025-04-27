@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
@@ -9,11 +8,13 @@ import { saveImageToLocalStorage, getImageFromLocalStorage } from "@/utils/local
 interface TransactionImageUploadProps {
   registrationId: string;
   onImageUploaded: (imageUrl: string) => void;
+  userName?: string;
 }
 
 const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
   registrationId,
   onImageUploaded,
+  userName = "unknown",
 }) => {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -37,43 +38,35 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         return;
       }
 
+      // Generate filename with user's name and timestamp
+      const timestamp = new Date().getTime();
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${userName.replace(/\s+/g, '_')}_${timestamp}.${fileExt}`;
+
       // Check if Supabase is properly configured
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      const saveToLocalStorage = (base64String: string) => {
-        const saved = saveImageToLocalStorage(registrationId, base64String);
-        if (saved) {
-          setPreviewUrl(base64String);
-          onImageUploaded(base64String);
-          return true;
-        }
-        return false;
-      };
-
-      // If Supabase is not configured, use localStorage as fallback
+      // If Supabase is not configured or fails, use local storage
       if (!supabaseUrl || !supabaseAnonKey) {
         console.log("Supabase not configured, using localStorage as fallback");
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           const base64String = e.target?.result as string;
-          if (saveImageToLocalStorage(registrationId, base64String)) {
-            toast.success("Image saved locally (demo mode)");
+          if (await saveImageToLocalStorage(registrationId, base64String, fileName)) {
+            toast.success("Image saved successfully");
             setPreviewUrl(base64String);
             onImageUploaded(base64String);
           } else {
-            toast.error("Failed to save image locally");
+            toast.error("Failed to save image");
           }
         };
         reader.readAsDataURL(file);
         return;
       }
 
-      console.log("Uploading to Supabase storage bucket: payment-proofs");
-      
-      // Upload to Supabase Storage
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${registrationId}/transaction.${fileExt}`;
+      // Try uploading to Supabase first
+      const filePath = `${registrationId}/${fileName}`;
 
       const { error: uploadError, data } = await supabase.storage
         .from("payment-proofs")
@@ -82,32 +75,32 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
       if (uploadError) {
         console.error("Error uploading to Supabase:", uploadError);
         
-        // Fallback to localStorage if upload fails
-        console.log("Upload failed, using localStorage as fallback");
+        // Fallback to local storage
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           const base64String = e.target?.result as string;
-          if (saveImageToLocalStorage(registrationId, base64String)) {
-            toast.warning("Upload to cloud storage failed. Image saved locally.");
+          if (await saveImageToLocalStorage(registrationId, base64String, fileName)) {
+            toast.warning("Cloud storage failed. Image saved locally.");
             setPreviewUrl(base64String);
             onImageUploaded(base64String);
           } else {
-            toast.error("Failed to save image locally");
+            toast.error("Failed to save image");
           }
         };
         reader.readAsDataURL(file);
         return;
       }
 
-      // Get the public URL of the uploaded file
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("payment-proofs").getPublicUrl(filePath);
+      // Get public URL if upload succeeded
+      const { data: { publicUrl } } = supabase.storage
+        .from("payment-proofs")
+        .getPublicUrl(filePath);
 
       console.log("File uploaded successfully, URL:", publicUrl);
       setPreviewUrl(publicUrl);
       onImageUploaded(publicUrl);
       toast.success("Transaction image uploaded successfully");
+
     } catch (error) {
       console.error("Error uploading file:", error);
       
@@ -115,9 +108,10 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
       const file = event.target.files?.[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           const base64String = e.target?.result as string;
-          if (saveImageToLocalStorage(registrationId, base64String)) {
+          const fileName = `${userName.replace(/\s+/g, '_')}_${Date.now()}.${file.name.split('.').pop()}`;
+          if (await saveImageToLocalStorage(registrationId, base64String, fileName)) {
             toast.warning("Using local storage as fallback");
             setPreviewUrl(base64String);
             onImageUploaded(base64String);
