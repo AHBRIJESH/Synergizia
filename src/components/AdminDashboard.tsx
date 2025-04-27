@@ -302,6 +302,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
+                    <TableHead>Registration Date</TableHead>
                     <TableHead className="min-w-[200px]">Selected Events</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Payment Status</TableHead>
@@ -325,6 +326,9 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                         </TableCell>
                         <TableCell>{registration.email}</TableCell>
                         <TableCell>{registration.phone}</TableCell>
+                        <TableCell>
+                          {new Date(registration.registrationDate).toLocaleString()}
+                        </TableCell>
                         <TableCell>
                           <TooltipProvider>
                             <Tooltip>
