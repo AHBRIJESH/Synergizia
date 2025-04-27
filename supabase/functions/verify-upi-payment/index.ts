@@ -25,52 +25,40 @@ serve(async (req) => {
     console.log(`Processing payment verification for registration: ${registrationId}`);
     console.log(`Email address: ${email}`);
     
-    // Store payment verification record
-    try {
-      const { data: verificationData, error: verificationError } = await supabase
-        .from('payment_verifications')
-        .insert([
-          {
-            registration_id: registrationId,
-            transaction_id: transactionId,
-            status: 'pending',
-            verification_metadata: {
-              transaction_image: transactionImage,
-              verification_time: new Date().toISOString(),
-            },
-          },
-        ])
-        .select()
-        .single();
+    // Verify all required SMTP environment variables are present
+    const smtpHost = Deno.env.get('SMTP_HOST');
+    const smtpPort = Deno.env.get('SMTP_PORT');
+    const smtpUser = Deno.env.get('SMTP_USER');
+    const smtpPassword = Deno.env.get('SMTP_PASSWORD');
+    const senderEmail = Deno.env.get('SENDER_EMAIL');
+    
+    // Comprehensive logging for SMTP configuration
+    console.log('SMTP Configuration Check:');
+    console.log(`SMTP Host: ${smtpHost ? 'Configured' : 'MISSING'}`);
+    console.log(`SMTP Port: ${smtpPort ? 'Configured' : 'MISSING'}`);
+    console.log(`SMTP User: ${smtpUser ? 'Configured' : 'MISSING'}`);
+    console.log(`Sender Email: ${senderEmail ? 'Configured' : 'MISSING'}`);
 
-      if (verificationError) {
-        console.error('Database error:', verificationError);
-        throw verificationError;
-      }
-      
-      console.log('Payment verification record created:', verificationData?.id);
-    } catch (dbError) {
-      console.error('Failed to create verification record:', dbError);
-      // Continue with email sending even if db insert fails
+    // Validate SMTP configuration
+    if (!smtpHost || !smtpPort || !smtpUser || !smtpPassword || !senderEmail) {
+      console.error('Incomplete SMTP configuration. Email sending will be skipped.');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Email configuration incomplete. Please contact support.",
+          emailStatus: "CONFIGURATION_ERROR"
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
     }
 
-    // Send confirmation email
+    // Proceed with email sending
+    const client = new SmtpClient();
+    
     try {
-      const smtpHost = Deno.env.get('SMTP_HOST');
-      const smtpPort = Deno.env.get('SMTP_PORT');
-      const smtpUser = Deno.env.get('SMTP_USER');
-      const smtpPassword = Deno.env.get('SMTP_PASSWORD');
-      const senderEmail = Deno.env.get('SENDER_EMAIL');
-      
-      if (!smtpHost || !smtpPort || !smtpUser || !smtpPassword || !senderEmail) {
-        console.warn('SMTP configuration incomplete. Email sending skipped.');
-        throw new Error('SMTP configuration incomplete');
-      }
-
-      const client = new SmtpClient();
-      
-      console.log(`Connecting to SMTP: ${smtpHost}:${smtpPort}`);
-      
       await client.connectTLS({
         hostname: smtpHost,
         port: parseInt(smtpPort),
@@ -79,45 +67,45 @@ serve(async (req) => {
       });
 
       const emailContent = `
-        <h1>Registration Payment Verification</h1>
-        <p>Dear participant,</p>
-        <p>We have received your payment verification request for SYNERGIZIA25.</p>
+        <h1>SYNERGIZIA25 - Payment Verification</h1>
+        <p>Dear Participant,</p>
+        <p>We have received your payment verification request.</p>
         <p>Registration ID: ${registrationId}</p>
         <p>Transaction ID: ${transactionId}</p>
-        <p>Our team will verify your payment shortly and send you a confirmation email.</p>
+        <p>Our team will review your payment and send a confirmation soon.</p>
         <p>Best regards,<br>SYNERGIZIA25 Team</p>
       `;
 
-      console.log(`Sending email to ${email}`);
-      
       await client.send({
         from: senderEmail,
         to: [email],
-        subject: "SYNERGIZIA25 Payment Verification",
-        content: "Payment verification initiated",
+        subject: "SYNERGIZIA25 - Payment Verification Received",
+        content: "Payment verification request processed",
         html: emailContent,
       });
 
+      console.log(`Email sent successfully to ${email}`);
       await client.close();
-      console.log('Email sent successfully');
+
     } catch (emailError) {
-      console.error('Failed to send email:', emailError);
-      // Don't throw here, we'll still return success to the client
+      console.error('Email sending failed:', emailError);
+      // Log the error but don't block the overall response
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: "Payment verification initiated",
-        emailStatus: "Email sending attempted"
+        emailStatus: "ATTEMPTED"
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     );
+
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Verification process error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
