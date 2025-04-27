@@ -1,12 +1,22 @@
 
-import React from 'react';
-import { useLocation, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { CheckCircle } from 'lucide-react';
 
 const RegistrationStatus = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { registrationId, email, message } = location.state || {};
+
+  useEffect(() => {
+    // Redirect to home page after 15 seconds
+    const redirectTimer = setTimeout(() => {
+      navigate('/');
+    }, 15000);
+
+    return () => clearTimeout(redirectTimer);
+  }, [navigate]);
 
   if (!registrationId) {
     return <Navigate to="/" replace />;
@@ -29,6 +39,9 @@ const RegistrationStatus = () => {
             <div className="space-y-4">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-gray-600">{message}</p>
+                <p className="text-sm text-gray-500 mt-4">
+                  You will be redirected to the home page in 15 seconds...
+                </p>
               </div>
               
               <div className="border-t pt-4">

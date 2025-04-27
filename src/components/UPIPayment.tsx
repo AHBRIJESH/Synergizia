@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader } from "lucide-react";
+import TransactionImageUpload from "./TransactionImageUpload";
 
 interface UPIPaymentProps {
   amount: number;
@@ -32,6 +33,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
 }) => {
   const [transactionId, setTransactionId] = React.useState("");
   const [isVerifying, setIsVerifying] = React.useState(false);
+  const [transactionImage, setTransactionImage] = React.useState("");
   const navigate = useNavigate();
 
   const upiPaymentLink = `upi://pay?pa=${UPI_ID}&pn=SYNERGIZIA25&am=${amount}&cu=INR&tn=Event_Registration`;
@@ -42,13 +44,19 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       return;
     }
 
+    if (!transactionImage) {
+      toast.error("Please upload the transaction screenshot");
+      return;
+    }
+
     setIsVerifying(true);
 
     try {
       const { data, error } = await verifyUPIPayment(
         transactionId,
         registrationId,
-        email
+        email,
+        transactionImage
       );
 
       if (error) {
@@ -110,9 +118,14 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
             />
           </div>
 
+          <TransactionImageUpload 
+            registrationId={registrationId}
+            onImageUploaded={setTransactionImage}
+          />
+
           <Button
             onClick={handleVerification}
-            disabled={!transactionId || isVerifying}
+            disabled={!transactionId || !transactionImage || isVerifying}
             className="w-full"
           >
             {isVerifying ? (
@@ -124,11 +137,6 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
               "Verify Payment"
             )}
           </Button>
-
-          <p className="text-sm text-gray-500 mt-2">
-            After verification, a confirmation email with all details will be
-            sent to {email}
-          </p>
         </div>
       </CardContent>
     </Card>
