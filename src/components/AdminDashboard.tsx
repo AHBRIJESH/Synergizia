@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -73,7 +74,17 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
       const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
       const data = storedData ? JSON.parse(storedData) : [];
       console.log('Loaded registrations:', data);
-      console.log('Sample payment details:', data[0]?.paymentDetails);
+      
+      // Log more detailed information about image availability
+      data.forEach((reg: RegistrationData, index: number) => {
+        console.log(`Registration #${index + 1} - ID: ${reg.id}`);
+        console.log(`Has payment image: ${!!reg.paymentDetails?.transactionImage}`);
+        if (reg.paymentDetails?.transactionImage) {
+          console.log(`Image URL/data length: ${reg.paymentDetails.transactionImage.length} characters`);
+          console.log(`Image starts with: ${reg.paymentDetails.transactionImage.substring(0, 50)}...`);
+        }
+      });
+      
       setRegistrations(data);
       toast.success(`Loaded ${data.length} registrations`);
     } catch (error) {
@@ -278,7 +289,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
             <div className="overflow-x-auto">
               <Table>
                 <TableCaption>
-                  Total of {filteredRegistrations.length} registrations
+                  Total of {filteredRegistrations.length} of {registrations.length} registrations
                 </TableCaption>
                 <TableHeader>
                   <TableRow>
@@ -296,11 +307,8 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                 </TableHeader>
                 <TableBody>
                   {filteredRegistrations.map((registration) => {
-                    console.log('Registration details:', {
-                      id: registration.id,
-                      hasImage: !!registration.paymentDetails?.transactionImage,
-                      imageUrl: registration.paymentDetails?.transactionImage
-                    });
+                    console.log(`Rendering registration ${registration.id}`);
+                    console.log(`Transaction image available: ${!!registration.paymentDetails?.transactionImage}`);
                     
                     return (
                       <TableRow key={registration.id}>
@@ -352,10 +360,11 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                                 src={registration.paymentDetails.transactionImage} 
                                 alt="Payment preview"
                                 className="w-20 h-20 object-cover rounded-md cursor-pointer border border-gray-200"
+                                onLoad={() => console.log(`Image loaded successfully for ${registration.id}`)}
                                 onError={(e) => {
-                                  console.error('Image failed to load:', e);
+                                  console.error(`Image failed to load for ${registration.id}:`, e);
                                   const img = e.target as HTMLImageElement;
-                                  console.log('Failed image URL:', img.src);
+                                  console.log('Failed image URL/data starts with:', registration.paymentDetails.transactionImage?.substring(0, 30));
                                 }}
                               />
                               <Dialog>
@@ -382,7 +391,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                               </Dialog>
                             </div>
                           ) : (
-                            <span className="text-gray-400">No image</span>
+                            <span className="text-gray-400">No image available</span>
                           )}
                         </TableCell>
                         <TableCell>
