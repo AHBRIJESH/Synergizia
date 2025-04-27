@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -75,7 +74,6 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
       const data = storedData ? JSON.parse(storedData) : [];
       console.log('Loaded registrations:', data);
       
-      // Log more detailed information about image availability
       data.forEach((reg: RegistrationData, index: number) => {
         console.log(`Registration #${index + 1} - ID: ${reg.id}`);
         console.log(`Has payment image: ${!!reg.paymentDetails?.transactionImage}`);
@@ -360,11 +358,10 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                                 src={registration.paymentDetails.transactionImage} 
                                 alt="Payment proof"
                                 className="w-20 h-20 object-cover rounded-md cursor-pointer border border-gray-200"
-                                onLoad={() => console.log(`Image loaded successfully for ${registration.id}`)}
                                 onError={(e) => {
                                   console.error(`Image failed to load for ${registration.id}:`, e);
                                   const img = e.target as HTMLImageElement;
-                                  console.log('Failed image URL/data starts with:', registration.paymentDetails.transactionImage?.substring(0, 30));
+                                  img.src = '/placeholder.svg'; // Fallback to a placeholder image
                                 }}
                               />
                               <Dialog>
@@ -383,8 +380,13 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                                   <ScrollArea className="h-[500px] w-full rounded-md border p-4">
                                     <img 
                                       src={registration.paymentDetails.transactionImage} 
-                                      alt="Payment proof"
+                                      alt="Full Payment proof"
                                       className="w-full rounded-lg"
+                                      onError={(e) => {
+                                        console.error(`Full image failed to load for ${registration.id}:`, e);
+                                        const img = e.target as HTMLImageElement;
+                                        img.src = '/placeholder.svg'; // Fallback to a placeholder image
+                                      }}
                                     />
                                   </ScrollArea>
                                 </DialogContent>
