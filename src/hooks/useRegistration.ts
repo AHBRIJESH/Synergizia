@@ -1,155 +1,43 @@
 
 import { useState } from 'react';
 import { toast } from "@/components/ui/sonner";
-import { verifyUPIPayment } from "@/lib/supabase";
-
-// Define a constant for localStorage key to match AdminDashboard
-export const LOCAL_STORAGE_KEY = 'synergizia_registrations';
-
-interface FormData {
-  fullName: string;
-  college: string;
-  department: string;
-  customDepartment: string;
-  year: string;
-  email: string;
-  phone: string;
-  selectedEvents: string[];
-  lunchOption: string;
-}
-
-export interface RegistrationData extends FormData {
-  id: string;
-  registrationDate: string;
-  paymentDetails: {
-    amount: number;
-    lunchOption: string;
-    paymentMethod: string;
-    paymentStatus: "Pending" | "Verified" | "Rejected";
-    transactionId?: string;
-  };
-}
-
-const initialForm: FormData = {
-  fullName: "",
-  college: "",
-  department: "",
-  customDepartment: "",
-  year: "",
-  email: "",
-  phone: "",
-  selectedEvents: [],
-  lunchOption: "",
-};
+import { useRegistrationForm, FormData, RegistrationData, initialForm } from './useRegistrationForm';
+import { useRegistrationValidation } from './useRegistrationValidation';
+import { saveRegistration, getRegistrations } from './useRegistrationStorage';
 
 export const useRegistration = () => {
-  const [formData, setFormData] = useState<FormData>(initialForm);
+  const { formData, handleChange, handleSelectChange, setFormData } = useRegistrationForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [registrationSuccess, setRegistrationSuccess] = useState<boolean>(false);
   const [step, setStep] = useState<"details" | "payment">("details");
   const [currentRegistrationId, setCurrentRegistrationId] = useState<string>("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setRegistrationError(null);
-  };
+  const { 
+    validateEmailFormat, 
+    validatePhoneFormat, 
+    checkIfEmailExists,
+    validateForm
+  } = useRegistrationValidation();
 
-  // Updated to handle both string and string[] values
-  const handleSelectChange = (name: string, value: string | string[]) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setRegistrationError(null);
-  };
-
-  const calculateTotalAmount = (): number => {
-    let total = formData.selectedEvents.length > 0 ? 100 : 0;
-    if (formData.lunchOption === "veg") {
+  const calculateTotalAmount = (data: FormData = formData): number => {
+    let total = data.selectedEvents.length > 0 ? 100 : 0;
+    if (data.lunchOption === "veg") {
       total += 50;
-    } else if (formData.lunchOption === "nonveg") {
+    } else if (data.lunchOption === "nonveg") {
       total += 60;
     }
     return total;
   };
 
-  const getRegistrations = (): RegistrationData[] => {
-    const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  };
-
-  const saveRegistration = (registration: RegistrationData) => {
-    const registrations = getRegistrations();
-    localStorage.setItem(
-      LOCAL_STORAGE_KEY,
-      JSON.stringify([...registrations, registration])
-    );
-  };
-
-  const validateEmailFormat = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePhoneFormat = (phone: string): boolean => {
-    const phoneRegex = /^\d{10,15}$/;
-    return phoneRegex.test(phone);
-  };
-
-  const checkIfEmailExists = (email: string): boolean => {
-    const registrations = getRegistrations();
-    return registrations.some(
-      (reg) => reg.email.toLowerCase() === email.toLowerCase()
-    );
-  };
-
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !formData.fullName ||
-      !formData.college ||
-      !formData.department ||
-      !formData.year ||
-      !formData.email ||
-      !formData.phone ||
-      formData.selectedEvents.length === 0 ||
-      (formData.department === "other" && !formData.customDepartment)
-    ) {
-      setRegistrationError(
-        "Please fill in all required fields and select at least one event."
-      );
+    const validationError = validateForm(formData);
+    if (validationError) {
+      setRegistrationError(validationError);
       toast.error("Validation Error", {
-        description:
-          "Please fill in all required fields and select at least one event.",
-      });
-      return;
-    }
-
-    if (!validateEmailFormat(formData.email)) {
-      setRegistrationError("Please enter a valid email address.");
-      toast.error("Validation Error", {
-        description: "Please enter a valid email address.",
-      });
-      return;
-    }
-
-    if (!validatePhoneFormat(formData.phone)) {
-      setRegistrationError(
-        "Please enter a valid phone number (10-15 digits only)."
-      );
-      toast.error("Validation Error", {
-        description: "Please enter a valid phone number (10-15 digits only).",
-      });
-      return;
-    }
-
-    if (checkIfEmailExists(formData.email)) {
-      setRegistrationError(
-        "This email is already registered. Please use a different email."
-      );
-      toast.error("Registration Error", {
-        description:
-          "This email is already registered. Please use a different email.",
+        description: validationError,
       });
       return;
     }
@@ -214,6 +102,9 @@ export const useRegistration = () => {
     completeRegistration,
     setStep,
     setIsSubmitting,
-    initialForm // Export initialForm for use in RegistrationForm
+    initialForm
   };
 };
+
+// Export RegistrationData for use in other components
+export type { RegistrationData };
