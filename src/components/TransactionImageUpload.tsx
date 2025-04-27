@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
@@ -56,8 +57,10 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64String = e.target?.result as string;
-          if (saveToLocalStorage(base64String)) {
+          if (saveImageToLocalStorage(registrationId, base64String)) {
             toast.success("Image saved locally (demo mode)");
+            setPreviewUrl(base64String);
+            onImageUploaded(base64String);
           } else {
             toast.error("Failed to save image locally");
           }
@@ -84,8 +87,10 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64String = e.target?.result as string;
-          if (saveToLocalStorage(base64String)) {
+          if (saveImageToLocalStorage(registrationId, base64String)) {
             toast.warning("Upload to cloud storage failed. Image saved locally.");
+            setPreviewUrl(base64String);
+            onImageUploaded(base64String);
           } else {
             toast.error("Failed to save image locally");
           }
@@ -112,8 +117,10 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64String = e.target?.result as string;
-          if (saveToLocalStorage(base64String)) {
+          if (saveImageToLocalStorage(registrationId, base64String)) {
             toast.warning("Using local storage as fallback");
+            setPreviewUrl(base64String);
+            onImageUploaded(base64String);
           } else {
             toast.error("Failed to save image");
           }
