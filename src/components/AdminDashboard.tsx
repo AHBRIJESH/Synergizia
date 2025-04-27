@@ -72,6 +72,8 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     try {
       const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
       const data = storedData ? JSON.parse(storedData) : [];
+      console.log('Loaded registrations:', data);
+      console.log('Sample payment details:', data[0]?.paymentDetails);
       setRegistrations(data);
       toast.success(`Loaded ${data.length} registrations`);
     } catch (error) {
@@ -293,121 +295,133 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRegistrations.map((registration) => (
-                    <TableRow key={registration.id}>
-                      <TableCell className="font-mono text-xs">
-                        {registration.id}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {registration.fullName}
-                      </TableCell>
-                      <TableCell>{registration.email}</TableCell>
-                      <TableCell>{registration.phone}</TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <div className="flex flex-wrap gap-1">
-                                {registration.selectedEvents.map((event, index) => (
-                                  <Badge 
-                                    key={index} 
-                                    variant="outline" 
-                                    className="text-xs"
-                                  >
-                                    {event}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="space-y-1">
-                                {registration.selectedEvents.map((event, index) => (
-                                  <div key={index}>{event}</div>
-                                ))}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell>₹{registration.paymentDetails.amount}</TableCell>
-                      <TableCell>
-                        {getPaymentStatusBadge(registration.paymentDetails.paymentStatus)}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {registration.paymentDetails.transactionId || "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        {registration.paymentDetails?.transactionImage ? (
-                          <div className="space-y-2">
-                            <img 
-                              src={registration.paymentDetails.transactionImage} 
-                              alt="Payment preview"
-                              className="w-20 h-20 object-cover rounded-md cursor-pointer border border-gray-200"
-                              onClick={() => setSelectedImage(registration.paymentDetails.transactionImage)}
-                            />
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  View Full
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-3xl">
-                                <DialogHeader>
-                                  <DialogTitle>Payment Screenshot</DialogTitle>
-                                  <DialogDescription>
-                                    Transaction ID: {registration.paymentDetails.transactionId}
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <ScrollArea className="h-[500px] w-full rounded-md border p-4">
-                                  <img 
-                                    src={registration.paymentDetails.transactionImage} 
-                                    alt="Payment proof"
-                                    className="w-full rounded-lg"
-                                  />
-                                </ScrollArea>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">No image</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {registration.paymentDetails.paymentStatus === "Pending" && (
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="bg-green-50 hover:bg-green-100 text-green-700"
-                              onClick={() => updateRegistrationStatus(registration.id, "Verified")}
-                              disabled={processingId === registration.id}
-                            >
-                              {processingId === registration.id ? (
-                                <Loader className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <CheckCircle className="w-3 h-3" />
-                              )} 
-                              Verify
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="bg-red-50 hover:bg-red-100 text-red-700"
-                              onClick={() => updateRegistrationStatus(registration.id, "Rejected")}
-                              disabled={processingId === registration.id}
-                            >
-                              {processingId === registration.id ? (
-                                <Loader className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <XCircle className="w-3 h-3" />
-                              )} 
-                              Reject
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredRegistrations.map((registration) => {
+                    console.log('Registration details:', {
+                      id: registration.id,
+                      hasImage: !!registration.paymentDetails?.transactionImage,
+                      imageUrl: registration.paymentDetails?.transactionImage
+                    });
+                    
+                    return (
+                      <TableRow key={registration.id}>
+                        <TableCell className="font-mono text-xs">
+                          {registration.id}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {registration.fullName}
+                        </TableCell>
+                        <TableCell>{registration.email}</TableCell>
+                        <TableCell>{registration.phone}</TableCell>
+                        <TableCell>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <div className="flex flex-wrap gap-1">
+                                  {registration.selectedEvents.map((event, index) => (
+                                    <Badge 
+                                      key={index} 
+                                      variant="outline" 
+                                      className="text-xs"
+                                    >
+                                      {event}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="space-y-1">
+                                  {registration.selectedEvents.map((event, index) => (
+                                    <div key={index}>{event}</div>
+                                  ))}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell>₹{registration.paymentDetails.amount}</TableCell>
+                        <TableCell>
+                          {getPaymentStatusBadge(registration.paymentDetails.paymentStatus)}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {registration.paymentDetails.transactionId || "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          {registration.paymentDetails?.transactionImage ? (
+                            <div className="space-y-2">
+                              <img 
+                                src={registration.paymentDetails.transactionImage} 
+                                alt="Payment preview"
+                                className="w-20 h-20 object-cover rounded-md cursor-pointer border border-gray-200"
+                                onError={(e) => {
+                                  console.error('Image failed to load:', e);
+                                  const img = e.target as HTMLImageElement;
+                                  console.log('Failed image URL:', img.src);
+                                }}
+                              />
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="outline" size="sm">
+                                    View Full
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl">
+                                  <DialogHeader>
+                                    <DialogTitle>Payment Screenshot</DialogTitle>
+                                    <DialogDescription>
+                                      Transaction ID: {registration.paymentDetails.transactionId}
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <ScrollArea className="h-[500px] w-full rounded-md border p-4">
+                                    <img 
+                                      src={registration.paymentDetails.transactionImage} 
+                                      alt="Payment proof"
+                                      className="w-full rounded-lg"
+                                    />
+                                  </ScrollArea>
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">No image</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {registration.paymentDetails.paymentStatus === "Pending" && (
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="bg-green-50 hover:bg-green-100 text-green-700"
+                                onClick={() => updateRegistrationStatus(registration.id, "Verified")}
+                                disabled={processingId === registration.id}
+                              >
+                                {processingId === registration.id ? (
+                                  <Loader className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="w-3 h-3" />
+                                )} 
+                                Verify
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="bg-red-50 hover:bg-red-100 text-red-700"
+                                onClick={() => updateRegistrationStatus(registration.id, "Rejected")}
+                                disabled={processingId === registration.id}
+                              >
+                                {processingId === registration.id ? (
+                                  <Loader className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <XCircle className="w-3 h-3" />
+                                )} 
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
