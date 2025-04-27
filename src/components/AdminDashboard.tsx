@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -49,6 +48,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RegistrationData } from "@/hooks/useRegistration";
+import { Trash2 } from "lucide-react";
 
 const LOCAL_STORAGE_KEY = 'synergizia_registrations';
 
@@ -419,4 +419,3 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 };
 
 export default AdminDashboard;
-
