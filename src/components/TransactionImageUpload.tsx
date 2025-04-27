@@ -17,9 +17,7 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
       const file = event.target.files?.[0];
@@ -29,32 +27,7 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         return;
       }
 
-      // Check if Supabase is configured with valid credentials
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      // If Supabase is not configured, use local storage as fallback
-      if (!supabaseUrl || !supabaseAnonKey) {
-        console.log(
-          "Using local file preview as Supabase storage is not configured"
-        );
-
-        // Create a local preview URL using base64 encoding to ensure persistence
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const base64String = e.target?.result as string;
-          console.log("Image converted to base64, length:", base64String.length);
-          console.log("Base64 string starts with:", base64String.substring(0, 50) + "...");
-          setPreviewUrl(base64String);
-          onImageUploaded(base64String);
-          toast.success("Transaction image processed");
-        };
-        reader.readAsDataURL(file);
-        setUploading(false);
-        return;
-      }
-
-      // If Supabase is configured, proceed with upload
+      // Upload to Supabase Storage
       const fileExt = file.name.split(".").pop();
       const filePath = `${registrationId}/transaction.${fileExt}`;
 
@@ -63,19 +36,12 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
-        // If upload fails, fallback to local preview
         console.error("Error uploading to Supabase:", uploadError);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const base64String = e.target?.result as string;
-          setPreviewUrl(base64String);
-          onImageUploaded(base64String);
-          toast.success("Transaction image processed locally (fallback mode)");
-        };
-        reader.readAsDataURL(file);
+        toast.error("Failed to upload transaction image");
         return;
       }
 
+      // Get the public URL of the uploaded file
       const {
         data: { publicUrl },
       } = supabase.storage.from("payment-proofs").getPublicUrl(filePath);
@@ -100,9 +66,7 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         <label className="flex flex-col items-center cursor-pointer">
           <Upload className="w-8 h-8 text-gray-400" />
           <span className="mt-2 text-sm text-gray-500">
-            {uploading
-              ? "Uploading..."
-              : "Click to upload transaction screenshot"}
+            {uploading ? "Uploading..." : "Click to upload transaction screenshot"}
           </span>
           <input
             id="transaction-image"
