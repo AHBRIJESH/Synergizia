@@ -39,9 +39,9 @@ const Footer = () => {
               SYNERGIZIA<span className="text-synergizia-gold">'25</span>
             </h3>
             <p className="text-gray-400 mb-4">
-              A National Level Technical Symposium hosted by Rajiv Gandhi
-              College of Engineering bringing together the brightest minds for a
-              day of learning and competition.
+              A premier technical symposium hosted by Rajiv Gandhi College of
+              Engineering. This event brings together the brightest minds to
+              collaborate, compete, and celebrate technological innovation.
             </p>
             <div className="flex space-x-4">
               {socialLinks.map(({ Icon, href, label }) => (
@@ -105,7 +105,7 @@ const Footer = () => {
                   href="mailto:info@synergizia25.org"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
-                  info@synergizia25.org
+                  synergizia@rgce.edu.in
                 </a>
               </li>
               <li className="flex items-center">
@@ -114,7 +114,7 @@ const Footer = () => {
                   href="tel:+916384665931"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
-                  +91 63846 65931, 9381149610
+                  63846 65931, 93811 49610
                 </a>
               </li>
             </ul>
