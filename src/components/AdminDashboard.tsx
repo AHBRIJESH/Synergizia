@@ -49,6 +49,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RegistrationData } from "@/hooks/useRegistration";
 import { Trash2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const LOCAL_STORAGE_KEY = 'synergizia_registrations';
 
@@ -72,19 +73,25 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     try {
       const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
       const data = storedData ? JSON.parse(storedData) : [];
-      console.log('Loaded registrations:', data);
       
-      data.forEach((reg: RegistrationData, index: number) => {
-        console.log(`Registration #${index + 1} - ID: ${reg.id}`);
-        console.log(`Has payment image: ${!!reg.paymentDetails?.transactionImage}`);
-        if (reg.paymentDetails?.transactionImage) {
-          console.log(`Image URL/data length: ${reg.paymentDetails.transactionImage.length} characters`);
-          console.log(`Image starts with: ${reg.paymentDetails.transactionImage.substring(0, 50)}...`);
+      const processedData = data.map((registration: RegistrationData) => {
+        if (registration.paymentDetails?.transactionImage) {
+          const isBase64 = registration.paymentDetails.transactionImage.startsWith('data:');
+          const isSupabaseUrl = registration.paymentDetails.transactionImage.includes('storage.supabase');
+          
+          if (!isBase64 && !isSupabaseUrl) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('payment-proofs')
+              .getPublicUrl(`${registration.id}/transaction.jpg`);
+            
+            registration.paymentDetails.transactionImage = publicUrl || '/placeholder.svg';
+          }
         }
+        return registration;
       });
       
-      setRegistrations(data);
-      toast.success(`Loaded ${data.length} registrations`);
+      setRegistrations(processedData);
+      toast.success(`Loaded ${processedData.length} registrations`);
     } catch (error) {
       toast.error("Failed to load registrations");
       console.error("Error loading registrations:", error);
