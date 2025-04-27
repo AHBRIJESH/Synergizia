@@ -22,6 +22,7 @@ export interface RegistrationData extends FormData {
     paymentMethod: string;
     paymentStatus: "Pending" | "Verified" | "Rejected";
     transactionId?: string;
+    transactionImage?: string;
   };
 }
 

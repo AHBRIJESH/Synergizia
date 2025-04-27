@@ -1,3 +1,4 @@
+
 import React from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ interface UPIPaymentProps {
   amount: number;
   registrationId: string;
   email: string;
-  onPaymentComplete: (success: boolean) => void;
+  onPaymentComplete: (success: boolean, transactionId?: string, transactionImage?: string) => void;
 }
 
 const UPI_ID = "ahbrijesh2004@okhdfcbank";
@@ -75,7 +76,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
         } 
       });
 
-      onPaymentComplete(true);
+      onPaymentComplete(true, transactionId, transactionImage);
     } catch (error) {
       console.error("Payment verification failed:", error);
       toast.error("Payment verification failed", {

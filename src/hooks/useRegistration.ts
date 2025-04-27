@@ -48,7 +48,7 @@ export const useRegistration = () => {
     setStep("payment");
   };
 
-  const completeRegistration = (transactionId: string) => {
+  const completeRegistration = (transactionId: string, transactionImage?: string) => {
     try {
       const registration: RegistrationData = {
         ...formData,
@@ -59,7 +59,8 @@ export const useRegistration = () => {
           lunchOption: formData.lunchOption,
           paymentMethod: "upi",
           paymentStatus: "Verified",
-          transactionId: transactionId
+          transactionId: transactionId,
+          transactionImage: transactionImage
         }
       };
 
