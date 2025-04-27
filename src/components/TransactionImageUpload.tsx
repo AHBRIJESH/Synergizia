@@ -27,6 +27,28 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         return;
       }
 
+      // Check if Supabase is properly configured
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      // If Supabase is not configured, use base64 encoding as fallback
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.log("Supabase not configured, using base64 encoding as fallback");
+        
+        // Create a base64 representation of the image
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64String = e.target?.result as string;
+          setPreviewUrl(base64String);
+          onImageUploaded(base64String);
+          toast.success("Image saved locally (demo mode)");
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      console.log("Uploading to Supabase storage bucket: payment-proofs");
+      
       // Upload to Supabase Storage
       const fileExt = file.name.split(".").pop();
       const filePath = `${registrationId}/transaction.${fileExt}`;
@@ -37,7 +59,17 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
 
       if (uploadError) {
         console.error("Error uploading to Supabase:", uploadError);
-        toast.error("Failed to upload transaction image");
+        
+        // Fallback to base64 if upload fails
+        console.log("Upload failed, using base64 encoding as fallback");
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64String = e.target?.result as string;
+          setPreviewUrl(base64String);
+          onImageUploaded(base64String);
+          toast.warning("Upload to cloud storage failed. Image saved locally.");
+        };
+        reader.readAsDataURL(file);
         return;
       }
 
@@ -46,12 +78,26 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         data: { publicUrl },
       } = supabase.storage.from("payment-proofs").getPublicUrl(filePath);
 
+      console.log("File uploaded successfully, URL:", publicUrl);
       setPreviewUrl(publicUrl);
       onImageUploaded(publicUrl);
       toast.success("Transaction image uploaded successfully");
     } catch (error) {
       console.error("Error uploading file:", error);
       toast.error("Failed to upload transaction image");
+      
+      // Final fallback if everything else fails
+      const file = event.target.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64String = e.target?.result as string;
+          setPreviewUrl(base64String);
+          onImageUploaded(base64String);
+          toast.warning("Using local image storage as fallback");
+        };
+        reader.readAsDataURL(file);
+      }
     } finally {
       setUploading(false);
     }
