@@ -3,6 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { verifyUPIPayment } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -17,11 +18,11 @@ import { Loader } from "lucide-react";
 interface UPIPaymentProps {
   amount: number;
   registrationId: string;
-  email: string; // Email is required for confirmation
+  email: string;
   onPaymentComplete: (success: boolean) => void;
 }
 
-const UPI_ID = "ahbrijesh2004@okhdfcbank"; // Replace with your actual UPI ID
+const UPI_ID = "ahbrijesh2004@okhdfcbank";
 
 const UPIPayment: React.FC<UPIPaymentProps> = ({
   amount,
@@ -31,6 +32,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
 }) => {
   const [transactionId, setTransactionId] = React.useState("");
   const [isVerifying, setIsVerifying] = React.useState(false);
+  const navigate = useNavigate();
 
   const upiPaymentLink = `upi://pay?pa=${UPI_ID}&pn=SYNERGIZIA25&am=${amount}&cu=INR&tn=Event_Registration`;
 
@@ -43,7 +45,6 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
     setIsVerifying(true);
 
     try {
-      // Pass the email along with the transaction ID and registration ID
       const { data, error } = await verifyUPIPayment(
         transactionId,
         registrationId,
@@ -54,8 +55,16 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
         throw error;
       }
 
-      toast.success("Payment recorded successfully!", {
-        description: `Your payment is being verified. A confirmation email will be sent to ${email} shortly with all details.`,
+      toast.success("Payment verification initiated", {
+        description: "Your payment is being verified. Please wait for confirmation.",
+      });
+
+      navigate("/registration-status", { 
+        state: { 
+          registrationId,
+          email,
+          message: "Your payment is being verified. You will receive a confirmation email shortly." 
+        } 
       });
 
       onPaymentComplete(true);

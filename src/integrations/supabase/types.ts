@@ -9,6 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      payment_verifications: {
+        Row: {
+          id: string
+          registration_id: string
+          status: Database["public"]["Enums"]["payment_status"] | null
+          transaction_id: string
+          verification_metadata: Json | null
+          verification_timestamp: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          id?: string
+          registration_id: string
+          status?: Database["public"]["Enums"]["payment_status"] | null
+          transaction_id: string
+          verification_metadata?: Json | null
+          verification_timestamp?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          id?: string
+          registration_id?: string
+          status?: Database["public"]["Enums"]["payment_status"] | null
+          transaction_id?: string
+          verification_metadata?: Json | null
+          verification_timestamp?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_verifications_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -52,6 +90,9 @@ export type Database = {
           full_name: string
           id: string
           payment_details: Json | null
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
+          payment_timestamp: string | null
+          payment_verified: boolean | null
           selected_events: string[]
           updated_at: string | null
         }
@@ -61,6 +102,9 @@ export type Database = {
           full_name: string
           id: string
           payment_details?: Json | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          payment_timestamp?: string | null
+          payment_verified?: boolean | null
           selected_events?: string[]
           updated_at?: string | null
         }
@@ -70,6 +114,9 @@ export type Database = {
           full_name?: string
           id?: string
           payment_details?: Json | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          payment_timestamp?: string | null
+          payment_verified?: boolean | null
           selected_events?: string[]
           updated_at?: string | null
         }
@@ -83,7 +130,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      payment_status: "pending" | "verified" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -198,6 +245,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      payment_status: ["pending", "verified", "failed"],
+    },
   },
 } as const
