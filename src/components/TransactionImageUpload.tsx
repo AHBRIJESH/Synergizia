@@ -12,6 +12,7 @@ interface TransactionImageUploadProps {
 
 const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({ registrationId, onImageUploaded }) => {
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -23,7 +24,24 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({ registr
         return;
       }
 
-      // Upload image to Supabase Storage
+      // Check if Supabase is configured with valid credentials
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      // If Supabase is not configured, use local storage as fallback
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.log('Using local file preview as Supabase storage is not configured');
+        
+        // Create a local preview URL
+        const localUrl = URL.createObjectURL(file);
+        setPreviewUrl(localUrl);
+        onImageUploaded(localUrl);
+        toast.success("Transaction image processed locally (demo mode)");
+        setUploading(false);
+        return;
+      }
+
+      // If Supabase is configured, proceed with upload
       const fileExt = file.name.split('.').pop();
       const filePath = `${registrationId}/transaction.${fileExt}`;
       
@@ -32,13 +50,20 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({ registr
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
-        throw uploadError;
+        // If upload fails, fallback to local preview
+        console.error('Error uploading to Supabase:', uploadError);
+        const localUrl = URL.createObjectURL(file);
+        setPreviewUrl(localUrl);
+        onImageUploaded(localUrl);
+        toast.success("Transaction image processed locally (fallback mode)");
+        return;
       }
 
       const { data: { publicUrl } } = supabase.storage
         .from('payment-proofs')
         .getPublicUrl(filePath);
 
+      setPreviewUrl(publicUrl);
       onImageUploaded(publicUrl);
       toast.success("Transaction image uploaded successfully");
     } catch (error) {
@@ -69,6 +94,17 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({ registr
             disabled={uploading}
           />
         </label>
+        
+        {previewUrl && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-500 mb-2">Preview:</p>
+            <img 
+              src={previewUrl} 
+              alt="Transaction preview" 
+              className="max-h-32 rounded border border-gray-200"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

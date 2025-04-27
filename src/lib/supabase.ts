@@ -13,7 +13,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Validate that we have the required configuration
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase credentials. Please make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your environment variables.');
+  console.warn('Missing Supabase credentials. Running in demo mode with limited functionality.');
 }
 
 // Create the Supabase client with appropriate error handling
@@ -28,6 +28,20 @@ export async function callEdgeFunction(
   payload?: any,
   options?: { token?: string }
 ): Promise<FunctionResponse> {
+  // First check if Supabase is properly configured
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.log(`Using demo mode for ${functionName} function`);
+    // Return mock data for demo mode
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve({
+          data: { success: true, demo: true },
+          error: null
+        });
+      }, 1000);
+    });
+  }
+  
   try {
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: payload,
@@ -52,10 +66,11 @@ export async function verifyUPIPayment(
   email?: string,
   transactionImage?: string
 ): Promise<FunctionResponse> {
-  // For development/testing, simulate successful verification
+  // For development/testing or if Supabase credentials are missing, simulate successful verification
   if (!supabaseUrl || !supabaseAnonKey) {
     console.log('Using mocked UPI verification due to missing Supabase credentials');
     console.log(`Would send email to: ${email}`);
+    console.log(`Transaction image: ${transactionImage?.substring(0, 50)}...`);
     
     return new Promise(resolve => {
       setTimeout(() => {
@@ -63,8 +78,9 @@ export async function verifyUPIPayment(
           data: { 
             success: true, 
             status: 'Verified',
-            userEmail: email || 'user@example.com', // Include email in the mock response
-            emailSent: true // Simulate that an email was sent
+            userEmail: email || 'user@example.com',
+            emailSent: true,
+            demo: true
           },
           error: null
         });
@@ -76,7 +92,7 @@ export async function verifyUPIPayment(
     transactionId,
     registrationId,
     paymentMethod: 'upi',
-    email: email, // Pass the email to the edge function
-    transactionImage: transactionImage // Pass the transaction image URL
+    email: email,
+    transactionImage: transactionImage
   });
 }
