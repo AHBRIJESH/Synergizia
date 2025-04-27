@@ -338,28 +338,36 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                       </TableCell>
                       <TableCell>
                         {registration.paymentDetails?.transactionImage ? (
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                View Image
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-3xl">
-                              <DialogHeader>
-                                <DialogTitle>Payment Screenshot</DialogTitle>
-                                <DialogDescription>
-                                  Transaction ID: {registration.paymentDetails.transactionId}
-                                </DialogDescription>
-                              </DialogHeader>
-                              <ScrollArea className="h-[500px] w-full rounded-md border p-4">
-                                <img 
-                                  src={registration.paymentDetails.transactionImage} 
-                                  alt="Payment proof"
-                                  className="w-full rounded-lg"
-                                />
-                              </ScrollArea>
-                            </DialogContent>
-                          </Dialog>
+                          <div className="space-y-2">
+                            <img 
+                              src={registration.paymentDetails.transactionImage} 
+                              alt="Payment preview"
+                              className="w-20 h-20 object-cover rounded-md cursor-pointer border border-gray-200"
+                              onClick={() => setSelectedImage(registration.paymentDetails.transactionImage)}
+                            />
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  View Full
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl">
+                                <DialogHeader>
+                                  <DialogTitle>Payment Screenshot</DialogTitle>
+                                  <DialogDescription>
+                                    Transaction ID: {registration.paymentDetails.transactionId}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <ScrollArea className="h-[500px] w-full rounded-md border p-4">
+                                  <img 
+                                    src={registration.paymentDetails.transactionImage} 
+                                    alt="Payment proof"
+                                    className="w-full rounded-lg"
+                                  />
+                                </ScrollArea>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         ) : (
                           <span className="text-gray-400">No image</span>
                         )}
