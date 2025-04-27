@@ -10,22 +10,29 @@ export const saveImageToLocalStorage = async (registrationId: string, imageData:
     // Create a File object
     const file = new File([blob], fileName, { type: blob.type });
 
-    // Save to public/screenshot folder
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      // Use the File System Access API to save to public/screenshot
-      const dirHandle = await window.showDirectoryPicker({
-        startIn: 'downloads',
-      });
-      const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
-      const writable = await fileHandle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-
-      // Also save to localStorage as fallback
-      localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${registrationId}`, imageData);
+      // Check if File System Access API is available
+      if ('showDirectoryPicker' in window) {
+        // This is a type assertion to tell TypeScript that we know this method exists
+        const directoryPicker = (window as any).showDirectoryPicker;
+        try {
+          const dirHandle = await directoryPicker({
+            startIn: 'downloads',
+          });
+          const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          console.log("File saved to filesystem successfully");
+        } catch (fsError) {
+          console.error('User cancelled directory selection or access denied:', fsError);
+          // Fall back to localStorage if user cancels or permission is denied
+          localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${registrationId}`, imageData);
+        }
+      } else {
+        console.log("File System Access API not available, using localStorage only");
+        localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${registrationId}`, imageData);
+      }
       return true;
     } catch (error) {
       console.error('Error saving to filesystem:', error);
@@ -47,4 +54,3 @@ export const getImageFromLocalStorage = (registrationId: string): string | null 
     return null;
   }
 };
-

@@ -20,7 +20,6 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if there's a saved image in localStorage
     const savedImage = getImageFromLocalStorage(registrationId);
     if (savedImage) {
       setPreviewUrl(savedImage);
@@ -38,16 +37,13 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         return;
       }
 
-      // Generate filename with user's name and timestamp
       const timestamp = new Date().getTime();
       const fileExt = file.name.split(".").pop();
       const fileName = `${userName.replace(/\s+/g, '_')}_${timestamp}.${fileExt}`;
 
-      // Check if Supabase is properly configured
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      // If Supabase is not configured or fails, use local storage
       if (!supabaseUrl || !supabaseAnonKey) {
         console.log("Supabase not configured, using localStorage as fallback");
         const reader = new FileReader();
@@ -65,7 +61,6 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         return;
       }
 
-      // Try uploading to Supabase first
       const filePath = `${registrationId}/${fileName}`;
 
       const { error: uploadError, data } = await supabase.storage
@@ -75,7 +70,6 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
       if (uploadError) {
         console.error("Error uploading to Supabase:", uploadError);
         
-        // Fallback to local storage
         const reader = new FileReader();
         reader.onload = async (e) => {
           const base64String = e.target?.result as string;
@@ -91,7 +85,6 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         return;
       }
 
-      // Get public URL if upload succeeded
       const { data: { publicUrl } } = supabase.storage
         .from("payment-proofs")
         .getPublicUrl(filePath);
@@ -104,7 +97,6 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
     } catch (error) {
       console.error("Error uploading file:", error);
       
-      // Final fallback if everything else fails
       const file = event.target.files?.[0];
       if (file) {
         const reader = new FileReader();
