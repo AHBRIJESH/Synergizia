@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -9,7 +10,7 @@ import {
 } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Download, Search, CheckCircle, XCircle, AlertTriangle, Loader, Trash2, Image } from "lucide-react";
+import { Download, Search, CheckCircle, XCircle, AlertTriangle, Loader } from "lucide-react";
 import { toast } from "./ui/sonner";
 import { Badge } from "./ui/badge";
 import {
@@ -40,6 +41,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { RegistrationData } from "@/hooks/useRegistration";
 
 const LOCAL_STORAGE_KEY = 'synergizia_registrations';
@@ -276,11 +284,11 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
-                    <TableHead>Events</TableHead>
+                    <TableHead className="min-w-[200px]">Selected Events</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Payment Status</TableHead>
                     <TableHead>Transaction ID</TableHead>
-                    <TableHead>Image</TableHead>
+                    <TableHead>Screenshot</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -296,7 +304,30 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                       <TableCell>{registration.email}</TableCell>
                       <TableCell>{registration.phone}</TableCell>
                       <TableCell>
-                        {registration.selectedEvents.length} event(s)
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <div className="flex flex-wrap gap-1">
+                                {registration.selectedEvents.map((event, index) => (
+                                  <Badge 
+                                    key={index} 
+                                    variant="outline" 
+                                    className="text-xs"
+                                  >
+                                    {event}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="space-y-1">
+                                {registration.selectedEvents.map((event, index) => (
+                                  <div key={index}>{event}</div>
+                                ))}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell>₹{registration.paymentDetails.amount}</TableCell>
                       <TableCell>
@@ -309,24 +340,24 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                         {registration.paymentDetails?.transactionImage ? (
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <Image className="h-4 w-4" />
+                              <Button variant="outline" size="sm">
+                                View Image
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-3xl">
                               <DialogHeader>
-                                <DialogTitle>Payment Proof</DialogTitle>
+                                <DialogTitle>Payment Screenshot</DialogTitle>
                                 <DialogDescription>
                                   Transaction ID: {registration.paymentDetails.transactionId}
                                 </DialogDescription>
                               </DialogHeader>
-                              <div className="mt-4">
+                              <ScrollArea className="h-[500px] w-full rounded-md border p-4">
                                 <img 
                                   src={registration.paymentDetails.transactionImage} 
                                   alt="Payment proof"
                                   className="w-full rounded-lg"
                                 />
-                              </div>
+                              </ScrollArea>
                             </DialogContent>
                           </Dialog>
                         ) : (
@@ -343,7 +374,12 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                               onClick={() => updateRegistrationStatus(registration.id, "Verified")}
                               disabled={processingId === registration.id}
                             >
-                              {processingId === registration.id ? <Loader className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />} Verify
+                              {processingId === registration.id ? (
+                                <Loader className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <CheckCircle className="w-3 h-3" />
+                              )} 
+                              Verify
                             </Button>
                             <Button 
                               size="sm" 
@@ -352,7 +388,12 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                               onClick={() => updateRegistrationStatus(registration.id, "Rejected")}
                               disabled={processingId === registration.id}
                             >
-                              {processingId === registration.id ? <Loader className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />} Reject
+                              {processingId === registration.id ? (
+                                <Loader className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <XCircle className="w-3 h-3" />
+                              )} 
+                              Reject
                             </Button>
                           </div>
                         )}
@@ -378,3 +419,4 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 };
 
 export default AdminDashboard;
+
