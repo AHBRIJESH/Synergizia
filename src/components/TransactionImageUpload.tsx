@@ -1,9 +1,9 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
 import { Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { saveImageToLocalStorage, getImageFromLocalStorage } from "@/utils/localStorageUtils";
 
 interface TransactionImageUploadProps {
   registrationId: string;
@@ -16,6 +16,15 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
 }) => {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check if there's a saved image in localStorage
+    const savedImage = getImageFromLocalStorage(registrationId);
+    if (savedImage) {
+      setPreviewUrl(savedImage);
+      onImageUploaded(savedImage);
+    }
+  }, [registrationId, onImageUploaded]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -31,17 +40,27 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      // If Supabase is not configured, use base64 encoding as fallback
+      const saveToLocalStorage = (base64String: string) => {
+        const saved = saveImageToLocalStorage(registrationId, base64String);
+        if (saved) {
+          setPreviewUrl(base64String);
+          onImageUploaded(base64String);
+          return true;
+        }
+        return false;
+      };
+
+      // If Supabase is not configured, use localStorage as fallback
       if (!supabaseUrl || !supabaseAnonKey) {
-        console.log("Supabase not configured, using base64 encoding as fallback");
-        
-        // Create a base64 representation of the image
+        console.log("Supabase not configured, using localStorage as fallback");
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64String = e.target?.result as string;
-          setPreviewUrl(base64String);
-          onImageUploaded(base64String);
-          toast.success("Image saved locally (demo mode)");
+          if (saveToLocalStorage(base64String)) {
+            toast.success("Image saved locally (demo mode)");
+          } else {
+            toast.error("Failed to save image locally");
+          }
         };
         reader.readAsDataURL(file);
         return;
@@ -60,14 +79,16 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
       if (uploadError) {
         console.error("Error uploading to Supabase:", uploadError);
         
-        // Fallback to base64 if upload fails
-        console.log("Upload failed, using base64 encoding as fallback");
+        // Fallback to localStorage if upload fails
+        console.log("Upload failed, using localStorage as fallback");
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64String = e.target?.result as string;
-          setPreviewUrl(base64String);
-          onImageUploaded(base64String);
-          toast.warning("Upload to cloud storage failed. Image saved locally.");
+          if (saveToLocalStorage(base64String)) {
+            toast.warning("Upload to cloud storage failed. Image saved locally.");
+          } else {
+            toast.error("Failed to save image locally");
+          }
         };
         reader.readAsDataURL(file);
         return;
@@ -84,7 +105,6 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
       toast.success("Transaction image uploaded successfully");
     } catch (error) {
       console.error("Error uploading file:", error);
-      toast.error("Failed to upload transaction image");
       
       // Final fallback if everything else fails
       const file = event.target.files?.[0];
@@ -92,9 +112,11 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64String = e.target?.result as string;
-          setPreviewUrl(base64String);
-          onImageUploaded(base64String);
-          toast.warning("Using local image storage as fallback");
+          if (saveToLocalStorage(base64String)) {
+            toast.warning("Using local storage as fallback");
+          } else {
+            toast.error("Failed to save image");
+          }
         };
         reader.readAsDataURL(file);
       }
