@@ -16,10 +16,10 @@ export const useRegistrationValidation = () => {
 
   const checkIfEmailExists = async (email: string): Promise<boolean> => {
     const registrations = await getRegistrations();
-    return registrations.some((registration) => registration.email === email);
+    return registrations.some((registration) => registration.email.toLowerCase() === email.toLowerCase());
   };
 
-  const validateForm = (data: FormData): string | null => {
+  const validateForm = async (data: FormData): Promise<string | null> => {
     if (!data.fullName || data.fullName.trim() === "") {
       return "Full name is required.";
     }
@@ -46,6 +46,12 @@ export const useRegistrationValidation = () => {
 
     if (!validateEmailFormat(data.email)) {
       return "Please enter a valid email address.";
+    }
+
+    // Check for duplicate email
+    const emailExists = await checkIfEmailExists(data.email);
+    if (emailExists) {
+      return "This email is already registered. Please use a different email.";
     }
 
     if (!data.phone || data.phone.trim() === "") {

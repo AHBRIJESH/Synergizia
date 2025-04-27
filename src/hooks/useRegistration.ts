@@ -30,22 +30,34 @@ export const useRegistration = () => {
     return total;
   };
 
-  const handleProceedToPayment = (e: React.FormEvent) => {
+  const handleProceedToPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const validationError = validateForm(formData);
-    if (validationError) {
-      setRegistrationError(validationError);
-      toast.error("Validation Error", {
-        description: validationError,
-      });
-      return;
-    }
-
-    const registrationId = `REG-${Date.now()}`;
-    setCurrentRegistrationId(registrationId);
+    setIsSubmitting(true);
     setRegistrationError(null);
-    setStep("payment");
+
+    try {
+      const validationError = await validateForm(formData);
+      if (validationError) {
+        setRegistrationError(validationError);
+        toast.error("Validation Error", {
+          description: validationError,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const registrationId = `REG-${Date.now()}`;
+      setCurrentRegistrationId(registrationId);
+      setStep("payment");
+    } catch (error) {
+      console.error("Error during validation:", error);
+      setRegistrationError("An unexpected error occurred. Please try again.");
+      toast.error("Error", {
+        description: "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const completeRegistration = (transactionId: string, transactionImage?: string) => {

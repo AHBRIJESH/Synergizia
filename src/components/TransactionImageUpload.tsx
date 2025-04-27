@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
@@ -38,11 +39,15 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
           "Using local file preview as Supabase storage is not configured"
         );
 
-        // Create a local preview URL
-        const localUrl = URL.createObjectURL(file);
-        setPreviewUrl(localUrl);
-        onImageUploaded(localUrl);
-        toast.success("Transaction image processed");
+        // Create a local preview URL using base64 encoding to ensure persistence
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64String = e.target?.result as string;
+          setPreviewUrl(base64String);
+          onImageUploaded(base64String);
+          toast.success("Transaction image processed");
+        };
+        reader.readAsDataURL(file);
         setUploading(false);
         return;
       }
@@ -58,10 +63,14 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
       if (uploadError) {
         // If upload fails, fallback to local preview
         console.error("Error uploading to Supabase:", uploadError);
-        const localUrl = URL.createObjectURL(file);
-        setPreviewUrl(localUrl);
-        onImageUploaded(localUrl);
-        toast.success("Transaction image processed locally (fallback mode)");
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64String = e.target?.result as string;
+          setPreviewUrl(base64String);
+          onImageUploaded(base64String);
+          toast.success("Transaction image processed locally (fallback mode)");
+        };
+        reader.readAsDataURL(file);
         return;
       }
 
