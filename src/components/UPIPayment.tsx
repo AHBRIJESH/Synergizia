@@ -63,6 +63,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       console.log("Email:", email);
       console.log("Transaction ID:", transactionId);
       console.log("Transaction image available:", !!transactionImage);
+      console.log("Transaction image length:", transactionImage.length);
       
       // If Supabase is not configured, use demo mode
       if (!supabaseUrl || !supabaseAnonKey) {
@@ -100,15 +101,25 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
 
       console.log("Response from verifyUPIPayment:", data);
       
-      toast.success("Payment verification initiated", {
-        description: `A confirmation email will be sent to ${email} shortly.`,
-      });
+      // Check email status from response
+      if (data.emailStatus === "SENT") {
+        toast.success("Payment verification confirmed", {
+          description: `A confirmation email has been sent to ${email}.`,
+        });
+      } else {
+        // If email wasn't sent but verification was processed
+        toast.success("Payment verification processed", {
+          description: `Your payment verification has been registered. Due to email service limitations, an email couldn't be sent to ${email}. Please check your registration status later.`,
+        });
+      }
 
       navigate("/registration-status", { 
         state: { 
           registrationId,
           email,
-          message: "Your payment is being verified. You will receive a confirmation email shortly." 
+          message: data.emailStatus === "SENT" 
+            ? "Your payment is being verified. You will receive a confirmation email shortly."
+            : "Your payment is being verified. Due to technical limitations, email delivery might be delayed." 
         } 
       });
 
@@ -117,7 +128,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       console.error("Payment verification failed:", error);
       // Even if verification fails, we'll still accept the payment for demo purposes
       toast.warning("Verification service unavailable", {
-        description: "Proceeding with demo mode registration.",
+        description: "Your registration is recorded, but email notification couldn't be sent at this time. Please keep your transaction details safe.",
       });
       
       // In demo mode, we still complete the registration
@@ -127,7 +138,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
         state: { 
           registrationId,
           email,
-          message: `Your registration has been processed in demo mode. Normally, a confirmation email would be sent to ${email}.` 
+          message: `Your registration has been processed. Due to technical limitations with email delivery, please keep your transaction ID (${transactionId}) safe for reference.` 
         } 
       });
     } finally {

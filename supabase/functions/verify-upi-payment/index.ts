@@ -39,6 +39,7 @@ serve(async (req) => {
     console.log(`Email address: ${email}`);
     console.log(`Transaction ID: ${transactionId}`);
     console.log(`Transaction image available: ${!!transactionImage}`);
+    console.log(`Transaction image length: ${transactionImage?.length || 0}`);
     
     // Store the payment verification data in the database
     try {
@@ -92,140 +93,137 @@ serve(async (req) => {
     console.log(`Sender Email: ${senderEmail ? senderEmail : 'MISSING'}`);
 
     // Validate SMTP configuration
+    let emailStatus = "NOT_ATTEMPTED";
+    
     if (!smtpHost || !smtpPort || !smtpUser || !smtpPassword || !senderEmail) {
       console.error('Incomplete SMTP configuration. Email sending will be skipped.');
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: "Email configuration incomplete. Please contact support.",
-          emailStatus: "CONFIGURATION_ERROR",
-          missingConfig: {
-            host: !smtpHost,
-            port: !smtpPort,
-            user: !smtpUser,
-            password: !smtpPassword,
-            sender: !senderEmail
-          }
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
-      );
-    }
-
-    // Proceed with email sending
-    const client = new SmtpClient();
-    let emailStatus = "FAILED";
-    
-    try {
-      console.log(`Attempting to connect to SMTP server at ${smtpHost}:${smtpPort}`);
+      emailStatus = "CONFIG_ERROR";
+    } else {
+      // Proceed with email sending
+      const client = new SmtpClient();
       
-      // Add more detailed connection logging
-      const connectionConfig = {
-        hostname: smtpHost,
-        port: parseInt(smtpPort),
-        username: smtpUser,
-        password: smtpPassword,
-        debug: true,
-        tls: true
-      };
-      
-      console.log(`Connection configuration: ${JSON.stringify({
-        hostname: smtpHost,
-        port: parseInt(smtpPort),
-        username: smtpUser,
-        debug: true,
-        tls: true
-        // Don't log the password for security reasons
-      })}`);
-
-      console.log("Starting SMTP connection...");
-      await client.connectTLS(connectionConfig);
-      console.log('Successfully connected to SMTP server');
-
-      const emailContent = `
-        <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
-            <h1 style="color: #6842c2; text-align: center;">SYNERGIZIA25 - Payment Verification</h1>
-            <hr style="border: 0; border-top: 1px solid #eee;">
-            <p>Dear Participant,</p>
-            <p>Thank you for registering for SYNERGIZIA25! We have received your payment verification request.</p>
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
-              <p style="margin: 5px 0;"><strong>Registration ID:</strong> ${registrationId}</p>
-              <p style="margin: 5px 0;"><strong>Transaction ID:</strong> ${transactionId}</p>
-            </div>
-            <p>Our team will review your payment and update your registration status shortly. You will receive a confirmation email once your payment is verified.</p>
-            <p>If you have any questions or concerns, please reply to this email.</p>
-            <p>Best regards,<br>SYNERGIZIA25 Team</p>
-          </div>
-        </body>
-        </html>
-      `;
-
-      console.log(`Attempting to send email to ${email} from ${senderEmail}`);
-      const sendConfig = {
-        from: senderEmail,
-        to: [email],
-        subject: "SYNERGIZIA25 - Payment Verification Received",
-        content: "Payment verification request processed",
-        html: emailContent,
-      };
-      
-      console.log(`Email send configuration: ${JSON.stringify({
-        from: senderEmail,
-        to: [email],
-        subject: "SYNERGIZIA25 - Payment Verification Received",
-      })}`);
-
-      console.log("Sending email...");
-      const sendResult = await client.send(sendConfig);
-      console.log(`Email send result:`, sendResult);
-      
-      emailStatus = "SENT";
-      console.log(`Email sent successfully to ${email}`);
-      await client.close();
-
-    } catch (emailError) {
-      console.error('Email sending failed:', emailError);
-      if (emailError instanceof Error) {
-        console.error('Error message:', emailError.message);
-        console.error('Error stack:', emailError.stack);
-        console.error('Error type:', emailError.constructor.name);
-      } else {
-        console.error('Non-Error object thrown:', typeof emailError);
-      }
-
-      // Implement fallback email delivery via direct API call for debugging
       try {
-        console.log("Attempting to log SMTP environment variables...");
-        // Only log first and last character for security
-        if (smtpPassword && smtpPassword.length > 2) {
-          const firstChar = smtpPassword.charAt(0);
-          const lastChar = smtpPassword.charAt(smtpPassword.length - 1);
-          console.log(`Password first and last chars: ${firstChar}...${lastChar}`);
-        }
-        console.log(`Port is numeric: ${!isNaN(parseInt(smtpPort || ""))}`);
+        console.log(`Attempting to connect to SMTP server at ${smtpHost}:${smtpPort}`);
         
-        // Try a manual DNS lookup to check connectivity
+        // Test connectivity to the SMTP server
         try {
-          console.log(`Attempting to resolve ${smtpHost}`);
-          const resolver = Deno.createResolver();
-          const addresses = await resolver.resolve(smtpHost);
-          console.log(`Resolved ${smtpHost} to:`, addresses);
-        } catch (dnsError) {
-          console.error(`DNS resolution failed for ${smtpHost}:`, dnsError);
+          console.log("Testing raw network connectivity to SMTP server...");
+          const conn = await Deno.connect({
+            hostname: smtpHost,
+            port: parseInt(smtpPort),
+          });
+          console.log("Successfully established raw connection to SMTP server");
+          conn.close();
+        } catch (connError) {
+          console.error("Failed to establish raw connection to SMTP server:", connError);
         }
-      } catch (logError) {
-        console.error("Error during environment variable logging:", logError);
-      }
-      
-      // Try to close the client gracefully despite the error
-      try {
+        
+        // Add more detailed connection logging
+        const connectionConfig = {
+          hostname: smtpHost,
+          port: parseInt(smtpPort),
+          username: smtpUser,
+          password: smtpPassword,
+          tls: true
+        };
+        
+        console.log(`Connection configuration: ${JSON.stringify({
+          hostname: smtpHost,
+          port: parseInt(smtpPort),
+          username: smtpUser,
+          tls: true
+          // Don't log the password for security reasons
+        })}`);
+
+        console.log("Starting SMTP connection...");
+        await client.connectTLS(connectionConfig);
+        console.log('Successfully connected to SMTP server');
+
+        const emailContent = `
+          <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
+              <h1 style="color: #6842c2; text-align: center;">SYNERGIZIA25 - Payment Verification</h1>
+              <hr style="border: 0; border-top: 1px solid #eee;">
+              <p>Dear Participant,</p>
+              <p>Thank you for registering for SYNERGIZIA25! We have received your payment verification request.</p>
+              <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <p style="margin: 5px 0;"><strong>Registration ID:</strong> ${registrationId}</p>
+                <p style="margin: 5px 0;"><strong>Transaction ID:</strong> ${transactionId}</p>
+              </div>
+              <p>Our team will review your payment and update your registration status shortly. You will receive a confirmation email once your payment is verified.</p>
+              <p>If you have any questions or concerns, please reply to this email.</p>
+              <p>Best regards,<br>SYNERGIZIA25 Team</p>
+            </div>
+          </body>
+          </html>
+        `;
+
+        console.log(`Attempting to send email to ${email} from ${senderEmail}`);
+        const sendConfig = {
+          from: senderEmail,
+          to: [email],
+          subject: "SYNERGIZIA25 - Payment Verification Received",
+          content: "Payment verification request processed",
+          html: emailContent,
+        };
+        
+        console.log(`Email send configuration: ${JSON.stringify({
+          from: senderEmail,
+          to: [email],
+          subject: "SYNERGIZIA25 - Payment Verification Received",
+        })}`);
+
+        console.log("Sending email...");
+        const sendResult = await client.send(sendConfig);
+        console.log(`Email send result:`, sendResult);
+        
+        emailStatus = "SENT";
+        console.log(`Email sent successfully to ${email}`);
         await client.close();
-      } catch (closeError) {
-        console.error('Error closing SMTP client:', closeError);
+
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+        if (emailError instanceof Error) {
+          console.error('Error message:', emailError.message);
+          console.error('Error stack:', emailError.stack);
+          console.error('Error type:', emailError.constructor.name);
+          emailStatus = `ERROR: ${emailError.message}`;
+        } else {
+          console.error('Non-Error object thrown:', typeof emailError);
+          emailStatus = "UNKNOWN_ERROR";
+        }
+
+        // Diagnostic tests for common SMTP issues
+        try {
+          if (smtpHost === "smtp.gmail.com") {
+            console.log("Gmail SMTP detected - checking common issues:");
+            
+            // Check if using app password
+            if (smtpPassword && smtpPassword.length < 20) {
+              console.log("WARNING: Gmail likely requires an App Password rather than regular password");
+              console.log("See: https://support.google.com/accounts/answer/185833");
+            }
+            
+            // Check port configuration
+            if (parseInt(smtpPort) === 587) {
+              console.log("Port 587 is correct for TLS with Gmail");
+            } else if (parseInt(smtpPort) === 465) {
+              console.log("Port 465 is for SSL with Gmail - may require different connection method");
+            } else {
+              console.log(`Port ${smtpPort} is not standard for Gmail SMTP`);
+            }
+          }
+        } catch (diagnosticError) {
+          console.error("Error during SMTP diagnostics:", diagnosticError);
+        }
+        
+        // Try to close the client gracefully despite the error
+        try {
+          await client.close();
+        } catch (closeError) {
+          console.error('Error closing SMTP client:', closeError);
+        }
       }
     }
 
@@ -234,7 +232,13 @@ serve(async (req) => {
       console.log(`Updating payment record with email sent status: ${emailStatus === "SENT"}`);
       const { error: updateError } = await supabase
         .from('payments')
-        .update({ email_sent: emailStatus === "SENT" })
+        .update({ 
+          email_sent: emailStatus === "SENT",
+          payment_metadata: { 
+            emailStatus: emailStatus,
+            emailAttemptTime: new Date().toISOString()
+          }
+        })
         .eq('registration_id', registrationId)
         .eq('transaction_id', transactionId);
       
