@@ -67,8 +67,8 @@ export const useRegistration = () => {
       saveRegistration(registration);
       setRegistrationSuccess(true);
 
-      toast.success("Registration Successful!", {
-        description: `Your payment has been verified and your registration is confirmed. A confirmation will be sent to ${formData.email}.`,
+      toast.success("Transaction Verified Successfully!", {
+        description: `Your payment has been recorded and your registration is confirmed. A confirmation email will be sent to ${formData.email} shortly.`,
       });
 
       setTimeout(() => {

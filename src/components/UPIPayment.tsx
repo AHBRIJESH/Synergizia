@@ -189,6 +189,9 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
               value={transactionId}
               onChange={(e) => setTransactionId(e.target.value)}
             />
+            <p className="text-sm text-amber-600">
+              Please verify your UPI Transaction ID carefully before submitting
+            </p>
           </div>
 
           <TransactionImageUpload 
