@@ -49,7 +49,8 @@ export async function callEdgeFunction(
 export async function verifyUPIPayment(
   transactionId: string, 
   registrationId: string,
-  email?: string
+  email?: string,
+  transactionImage?: string
 ): Promise<FunctionResponse> {
   // For development/testing, simulate successful verification
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -75,6 +76,7 @@ export async function verifyUPIPayment(
     transactionId,
     registrationId,
     paymentMethod: 'upi',
-    email: email // Pass the email to the edge function
+    email: email, // Pass the email to the edge function
+    transactionImage: transactionImage // Pass the transaction image URL
   });
 }
