@@ -72,14 +72,21 @@ export async function verifyUPIPayment(
     console.log(`Would send email to: ${email}`);
     console.log(`Transaction image: ${transactionImage?.substring(0, 50)}...`);
     
+    // Simulate email sending
+    const userEmail = email || 'user@example.com';
+    
+    // In demo mode, display a more accurate message
+    console.log(`In a production environment, an email would be sent to ${userEmail} with payment verification details`);
+    
     return new Promise(resolve => {
       setTimeout(() => {
         resolve({
           data: { 
             success: true, 
             status: 'Verified',
-            userEmail: email || 'user@example.com',
+            userEmail: userEmail,
             emailSent: true,
+            message: `In demo mode: A confirmation would be sent to ${userEmail} in production.`,
             demo: true
           },
           error: null

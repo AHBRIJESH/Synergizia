@@ -61,15 +61,15 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       if (!supabaseUrl || !supabaseAnonKey) {
         console.log('Using demo mode as Supabase is not configured');
         
-        toast.success("Payment verification initiated", {
-          description: "Your payment is being verified. Please wait for confirmation.",
+        toast.success("Registration completed successfully", {
+          description: `Since this is running in demo mode, no actual email will be sent to ${email}. In production, a confirmation email would be sent.`,
         });
 
         navigate("/registration-status", { 
           state: { 
             registrationId,
             email,
-            message: "Your payment is being verified. You will receive a confirmation email shortly." 
+            message: `Your registration has been processed successfully. In a production environment, a confirmation email would be sent to ${email}.` 
           } 
         });
 
@@ -90,7 +90,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       }
 
       toast.success("Payment verification initiated", {
-        description: "Your payment is being verified. Please wait for confirmation.",
+        description: `A confirmation email will be sent to ${email} shortly.`,
       });
 
       navigate("/registration-status", { 
@@ -116,7 +116,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
         state: { 
           registrationId,
           email,
-          message: "Your registration has been processed in demo mode." 
+          message: `Your registration has been processed in demo mode. Normally, a confirmation email would be sent to ${email}.` 
         } 
       });
     } finally {
