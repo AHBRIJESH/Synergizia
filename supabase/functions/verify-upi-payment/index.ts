@@ -9,8 +9,14 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("-------------- STARTING VERIFY UPI PAYMENT FUNCTION --------------");
+  console.log(`Request received at: ${new Date().toISOString()}`);
+  console.log(`Request URL: ${req.url}`);
+  console.log(`Request method: ${req.method}`);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -18,15 +24,25 @@ serve(async (req) => {
     // Create a Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    console.log(`Supabase URL available: ${!!supabaseUrl}`);
+    console.log(`Supabase key available: ${!!supabaseKey}`);
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { transactionId, registrationId, email, transactionImage } = await req.json();
+    console.log("Parsing request body...");
+    const requestBody = await req.json();
+    const { transactionId, registrationId, email, transactionImage } = requestBody;
     
+    console.log("Request body parsed successfully");
     console.log(`Processing payment verification for registration: ${registrationId}`);
     console.log(`Email address: ${email}`);
+    console.log(`Transaction ID: ${transactionId}`);
+    console.log(`Transaction image available: ${!!transactionImage}`);
     
     // Store the payment verification data in the database
     try {
+      console.log("Storing payment data in database...");
       const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
         .insert([
@@ -35,18 +51,28 @@ serve(async (req) => {
             transaction_id: transactionId,
             status: 'pending',
             transaction_image_url: transactionImage,
-            verification_timestamp: new Date().toISOString()
+            verification_timestamp: new Date().toISOString(),
+            payment_method: 'upi',
+            amount: 0,  // This will be updated later
+            email_sent: false
           }
         ]);
       
       if (paymentError) {
         console.error('Error storing payment data:', paymentError);
+        console.error(`Error details: ${JSON.stringify(paymentError)}`);
         // Continue execution even if database storage fails
       } else {
         console.log('Payment verification data stored successfully');
       }
     } catch (dbError) {
       console.error('Exception while storing payment data:', dbError);
+      if (dbError instanceof Error) {
+        console.error('DB Error message:', dbError.message);
+        console.error('DB Error stack:', dbError.stack);
+      } else {
+        console.error('Non-Error DB object thrown:', typeof dbError);
+      }
       // Continue execution even if database storage fails
     }
     
@@ -72,7 +98,14 @@ serve(async (req) => {
         JSON.stringify({ 
           success: false, 
           message: "Email configuration incomplete. Please contact support.",
-          emailStatus: "CONFIGURATION_ERROR"
+          emailStatus: "CONFIGURATION_ERROR",
+          missingConfig: {
+            host: !smtpHost,
+            port: !smtpPort,
+            user: !smtpUser,
+            password: !smtpPassword,
+            sender: !senderEmail
+          }
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -94,15 +127,20 @@ serve(async (req) => {
         port: parseInt(smtpPort),
         username: smtpUser,
         password: smtpPassword,
+        debug: true,
+        tls: true
       };
       
       console.log(`Connection configuration: ${JSON.stringify({
         hostname: smtpHost,
         port: parseInt(smtpPort),
         username: smtpUser,
+        debug: true,
+        tls: true
         // Don't log the password for security reasons
       })}`);
 
+      console.log("Starting SMTP connection...");
       await client.connectTLS(connectionConfig);
       console.log('Successfully connected to SMTP server');
 
@@ -141,6 +179,7 @@ serve(async (req) => {
         subject: "SYNERGIZIA25 - Payment Verification Received",
       })}`);
 
+      console.log("Sending email...");
       const sendResult = await client.send(sendConfig);
       console.log(`Email send result:`, sendResult);
       
@@ -168,6 +207,16 @@ serve(async (req) => {
           console.log(`Password first and last chars: ${firstChar}...${lastChar}`);
         }
         console.log(`Port is numeric: ${!isNaN(parseInt(smtpPort || ""))}`);
+        
+        // Try a manual DNS lookup to check connectivity
+        try {
+          console.log(`Attempting to resolve ${smtpHost}`);
+          const resolver = Deno.createResolver();
+          const addresses = await resolver.resolve(smtpHost);
+          console.log(`Resolved ${smtpHost} to:`, addresses);
+        } catch (dnsError) {
+          console.error(`DNS resolution failed for ${smtpHost}:`, dnsError);
+        }
       } catch (logError) {
         console.error("Error during environment variable logging:", logError);
       }
@@ -182,6 +231,7 @@ serve(async (req) => {
 
     // Update the payment status in the database based on email sending result
     try {
+      console.log(`Updating payment record with email sent status: ${emailStatus === "SENT"}`);
       const { error: updateError } = await supabase
         .from('payments')
         .update({ email_sent: emailStatus === "SENT" })
@@ -197,6 +247,9 @@ serve(async (req) => {
       console.error('Exception while updating payment email status:', updateError);
     }
 
+    console.log("Function completed successfully");
+    console.log(`Final email status: ${emailStatus}`);
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -225,5 +278,7 @@ serve(async (req) => {
         status: 500,
       }
     );
+  } finally {
+    console.log("-------------- ENDING VERIFY UPI PAYMENT FUNCTION --------------");
   }
 });

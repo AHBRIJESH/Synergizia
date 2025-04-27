@@ -43,15 +43,20 @@ export async function callEdgeFunction(
   }
   
   try {
+    console.log(`Calling Supabase edge function: ${functionName}`);
+    console.log(`Payload:`, payload);
+
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: payload,
       headers: options?.token ? { Authorization: `Bearer ${options.token}` } : undefined,
     });
 
     if (error) {
+      console.error(`Error invoking ${functionName}:`, error);
       throw new Error(error.message);
     }
 
+    console.log(`Response from ${functionName}:`, data);
     return { data, error: null };
   } catch (err) {
     console.error(`Error calling ${functionName}:`, err);
@@ -66,6 +71,12 @@ export async function verifyUPIPayment(
   email?: string,
   transactionImage?: string
 ): Promise<FunctionResponse> {
+  console.log("verifyUPIPayment called with:");
+  console.log("- Transaction ID:", transactionId);
+  console.log("- Registration ID:", registrationId);
+  console.log("- Email:", email);
+  console.log("- Transaction image length:", transactionImage ? transactionImage.length : 0);
+  
   // For development/testing or if Supabase credentials are missing, simulate successful verification
   if (!supabaseUrl || !supabaseAnonKey) {
     console.log('Using mocked UPI verification due to missing Supabase credentials');
@@ -95,6 +106,7 @@ export async function verifyUPIPayment(
     });
   }
   
+  console.log("Calling verify-upi-payment edge function");
   return callEdgeFunction('verify-upi-payment', {
     transactionId,
     registrationId,

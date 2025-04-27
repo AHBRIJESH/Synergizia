@@ -57,6 +57,13 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
+      // Add logging for verification process
+      console.log("Starting payment verification process");
+      console.log("Registration ID:", registrationId);
+      console.log("Email:", email);
+      console.log("Transaction ID:", transactionId);
+      console.log("Transaction image available:", !!transactionImage);
+      
       // If Supabase is not configured, use demo mode
       if (!supabaseUrl || !supabaseAnonKey) {
         console.log('Using demo mode as Supabase is not configured');
@@ -78,6 +85,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       }
 
       // If Supabase is configured, proceed with verification
+      console.log("Calling verifyUPIPayment function with Supabase");
       const { data, error } = await verifyUPIPayment(
         transactionId,
         registrationId,
@@ -86,9 +94,12 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       );
 
       if (error) {
+        console.error("Error from verifyUPIPayment:", error);
         throw error;
       }
 
+      console.log("Response from verifyUPIPayment:", data);
+      
       toast.success("Payment verification initiated", {
         description: `A confirmation email will be sent to ${email} shortly.`,
       });
