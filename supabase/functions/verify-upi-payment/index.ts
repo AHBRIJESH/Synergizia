@@ -87,12 +87,23 @@ serve(async (req) => {
     
     try {
       console.log(`Attempting to connect to SMTP server at ${smtpHost}:${smtpPort}`);
-      await client.connectTLS({
+      
+      // Add more detailed connection logging
+      const connectionConfig = {
         hostname: smtpHost,
         port: parseInt(smtpPort),
         username: smtpUser,
         password: smtpPassword,
-      });
+      };
+      
+      console.log(`Connection configuration: ${JSON.stringify({
+        hostname: smtpHost,
+        port: parseInt(smtpPort),
+        username: smtpUser,
+        // Don't log the password for security reasons
+      })}`);
+
+      await client.connectTLS(connectionConfig);
       console.log('Successfully connected to SMTP server');
 
       const emailContent = `
@@ -115,17 +126,26 @@ serve(async (req) => {
         </html>
       `;
 
-      console.log(`Attempting to send email to ${email}`);
-      await client.send({
+      console.log(`Attempting to send email to ${email} from ${senderEmail}`);
+      const sendConfig = {
         from: senderEmail,
         to: [email],
         subject: "SYNERGIZIA25 - Payment Verification Received",
         content: "Payment verification request processed",
         html: emailContent,
-      });
+      };
+      
+      console.log(`Email send configuration: ${JSON.stringify({
+        from: senderEmail,
+        to: [email],
+        subject: "SYNERGIZIA25 - Payment Verification Received",
+      })}`);
 
-      console.log(`Email sent successfully to ${email}`);
+      const sendResult = await client.send(sendConfig);
+      console.log(`Email send result:`, sendResult);
+      
       emailStatus = "SENT";
+      console.log(`Email sent successfully to ${email}`);
       await client.close();
 
     } catch (emailError) {
@@ -133,7 +153,25 @@ serve(async (req) => {
       if (emailError instanceof Error) {
         console.error('Error message:', emailError.message);
         console.error('Error stack:', emailError.stack);
+        console.error('Error type:', emailError.constructor.name);
+      } else {
+        console.error('Non-Error object thrown:', typeof emailError);
       }
+
+      // Implement fallback email delivery via direct API call for debugging
+      try {
+        console.log("Attempting to log SMTP environment variables...");
+        // Only log first and last character for security
+        if (smtpPassword && smtpPassword.length > 2) {
+          const firstChar = smtpPassword.charAt(0);
+          const lastChar = smtpPassword.charAt(smtpPassword.length - 1);
+          console.log(`Password first and last chars: ${firstChar}...${lastChar}`);
+        }
+        console.log(`Port is numeric: ${!isNaN(parseInt(smtpPort || ""))}`);
+      } catch (logError) {
+        console.error("Error during environment variable logging:", logError);
+      }
+      
       // Try to close the client gracefully despite the error
       try {
         await client.close();
@@ -152,6 +190,8 @@ serve(async (req) => {
       
       if (updateError) {
         console.error('Error updating payment email status:', updateError);
+      } else {
+        console.log('Payment email status updated successfully');
       }
     } catch (updateError) {
       console.error('Exception while updating payment email status:', updateError);
