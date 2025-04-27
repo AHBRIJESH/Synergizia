@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { FormData } from './useRegistrationForm';
 import { getRegistrations } from './useRegistrationStorage';
@@ -10,7 +9,7 @@ export const useRegistrationValidation = () => {
   };
 
   const validatePhoneFormat = (phone: string): boolean => {
-    const phoneRegex = /^\d{10,15}$/;
+    const phoneRegex = /^\d{10}$/;
     return phoneRegex.test(phone);
   };
 
@@ -59,7 +58,7 @@ export const useRegistrationValidation = () => {
     }
 
     if (!validatePhoneFormat(data.phone)) {
-      return "Please enter a valid phone number (10-15 digits).";
+      return "Please enter a valid phone number (10 digits).";
     }
 
     if (!data.selectedEvents || data.selectedEvents.length === 0) {

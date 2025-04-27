@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -78,10 +77,8 @@ const RegistrationForm = () => {
 
   const handleEventChange = (eventTitle: string, checked: boolean) => {
     if (checked) {
-      // Pass the array directly as it's now handled in the hook
       handleSelectChange('selectedEvents', [...formData.selectedEvents, eventTitle]);
     } else {
-      // Pass the array directly as it's now handled in the hook
       handleSelectChange('selectedEvents', 
         formData.selectedEvents.filter(event => event !== eventTitle)
       );
@@ -195,7 +192,7 @@ const RegistrationForm = () => {
                 value={formData.phone}
                 onChange={handleChange}
                 required
-                placeholder="Enter 10-15 digit number"
+                placeholder="Enter 10-digit phone number"
               />
             </div>
 
