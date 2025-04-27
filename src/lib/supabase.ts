@@ -97,8 +97,8 @@ export async function verifyUPIPayment(
             status: 'Verified',
             userEmail: userEmail,
             emailSent: true,
-            message: `In demo mode: A confirmation would be sent to ${userEmail} in production.`,
-            demo: true
+            demoMode: true,
+            message: `In demo mode: A confirmation would be sent to ${userEmail} in production.`
           },
           error: null
         });
@@ -107,11 +107,24 @@ export async function verifyUPIPayment(
   }
   
   console.log("Calling verify-upi-payment edge function");
-  return callEdgeFunction('verify-upi-payment', {
-    transactionId,
-    registrationId,
-    paymentMethod: 'upi',
-    email: email,
-    transactionImage: transactionImage
-  });
+  try {
+    return await callEdgeFunction('verify-upi-payment', {
+      transactionId,
+      registrationId,
+      paymentMethod: 'upi',
+      email: email,
+      transactionImage: transactionImage
+    });
+  } catch (error) {
+    console.error("Error in verifyUPIPayment:", error);
+    // Return a structured error response
+    return {
+      data: {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        fallback: true
+      },
+      error: error instanceof Error ? error : new Error(String(error))
+    };
+  }
 }

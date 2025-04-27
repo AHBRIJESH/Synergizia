@@ -41,6 +41,31 @@ serve(async (req) => {
     console.log(`Transaction image available: ${!!transactionImage}`);
     console.log(`Transaction image length: ${transactionImage?.length || 0}`);
     
+    // Check if registration exists before proceeding
+    try {
+      console.log(`Checking if registration ${registrationId} exists...`);
+      
+      // Note: We're using local storage for demo mode, so the registration may not exist in database
+      // This is just a verification step for when using actual Supabase database
+      const { data: existingReg, error: regError } = await supabase
+        .from('registrations')
+        .select('id, email')
+        .eq('id', registrationId)
+        .maybeSingle();
+      
+      if (regError) {
+        console.log(`Error checking registration: ${regError.message}`);
+        // Continue anyway, as we're likely in demo mode
+      } else if (existingReg) {
+        console.log(`Registration found: ${existingReg.id}, email: ${existingReg.email}`);
+      } else {
+        console.log(`No registration found with ID ${registrationId} (likely in demo mode)`);
+      }
+    } catch (checkError) {
+      console.error(`Exception checking registration: ${checkError}`);
+      // Continue execution even if check fails (likely in demo mode)
+    }
+    
     // Store the payment verification data in the database
     try {
       console.log("Storing payment data in database...");
@@ -62,7 +87,7 @@ serve(async (req) => {
       if (paymentError) {
         console.error('Error storing payment data:', paymentError);
         console.error(`Error details: ${JSON.stringify(paymentError)}`);
-        // Continue execution even if database storage fails
+        console.log('Continuing execution despite database error (may be in demo mode)');
       } else {
         console.log('Payment verification data stored successfully');
       }
@@ -74,7 +99,7 @@ serve(async (req) => {
       } else {
         console.error('Non-Error DB object thrown:', typeof dbError);
       }
-      // Continue execution even if database storage fails
+      console.log('Continuing execution despite database error (may be in demo mode)');
     }
     
     // Verify all required SMTP environment variables are present
@@ -97,6 +122,7 @@ serve(async (req) => {
     
     if (!smtpHost || !smtpPort || !smtpUser || !smtpPassword || !senderEmail) {
       console.error('Incomplete SMTP configuration. Email sending will be skipped.');
+      console.log(`Missing SMTP config: Host=${!smtpHost}, Port=${!smtpPort}, User=${!smtpUser}, Password=${!smtpPassword}, Sender=${!senderEmail}`);
       emailStatus = "CONFIG_ERROR";
     } else {
       // Proceed with email sending
@@ -116,6 +142,9 @@ serve(async (req) => {
           conn.close();
         } catch (connError) {
           console.error("Failed to establish raw connection to SMTP server:", connError);
+          if (connError instanceof Error) {
+            console.error("Connection error message:", connError.message);
+          }
         }
         
         // Add more detailed connection logging
@@ -203,6 +232,7 @@ serve(async (req) => {
             if (smtpPassword && smtpPassword.length < 20) {
               console.log("WARNING: Gmail likely requires an App Password rather than regular password");
               console.log("See: https://support.google.com/accounts/answer/185833");
+              emailStatus = "ERROR: Gmail requires App Password";
             }
             
             // Check port configuration
@@ -210,8 +240,10 @@ serve(async (req) => {
               console.log("Port 587 is correct for TLS with Gmail");
             } else if (parseInt(smtpPort) === 465) {
               console.log("Port 465 is for SSL with Gmail - may require different connection method");
+              emailStatus = "ERROR: Incorrect port for Gmail TLS";
             } else {
               console.log(`Port ${smtpPort} is not standard for Gmail SMTP`);
+              emailStatus = `ERROR: Non-standard port ${smtpPort} for Gmail`;
             }
           }
         } catch (diagnosticError) {
@@ -244,21 +276,27 @@ serve(async (req) => {
       
       if (updateError) {
         console.error('Error updating payment email status:', updateError);
+        console.log('This is expected in demo mode without database access');
       } else {
         console.log('Payment email status updated successfully');
       }
     } catch (updateError) {
       console.error('Exception while updating payment email status:', updateError);
+      console.log('This is expected in demo mode without database access');
     }
 
     console.log("Function completed successfully");
     console.log(`Final email status: ${emailStatus}`);
     
+    // Return a successful response even if email failed, but include the status
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: "Payment verification initiated",
-        emailStatus: emailStatus
+        emailStatus: emailStatus,
+        email: email,
+        demoMode: !supabaseUrl || !supabaseKey ? true : false,
+        smtpConfigured: !(!smtpHost || !smtpPort || !smtpUser || !smtpPassword || !senderEmail)
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

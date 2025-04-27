@@ -101,10 +101,24 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
 
       console.log("Response from verifyUPIPayment:", data);
       
-      // Check email status from response
-      if (data.emailStatus === "SENT") {
+      // More detailed response handling
+      if (data.demoMode) {
+        toast.success("Demo mode: Registration completed", {
+          description: "Since this is running in demo mode, no actual database updates or emails were processed.",
+        });
+      } else if (!data.smtpConfigured) {
+        toast.warning("Email configuration incomplete", {
+          description: "Your payment was recorded, but email notifications couldn't be sent due to incomplete SMTP configuration.",
+        });
+      } else if (data.emailStatus === "SENT") {
         toast.success("Payment verification confirmed", {
           description: `A confirmation email has been sent to ${email}.`,
+        });
+      } else if (data.emailStatus && data.emailStatus.startsWith("ERROR:")) {
+        // Handle specific email error
+        const errorMessage = data.emailStatus.substring(7); // Remove "ERROR: " prefix
+        toast.warning(`Email delivery issue: ${errorMessage}`, {
+          description: `Your payment information has been received, but we couldn't send a confirmation email. Please check your registration status later.`,
         });
       } else {
         // If email wasn't sent but verification was processed
