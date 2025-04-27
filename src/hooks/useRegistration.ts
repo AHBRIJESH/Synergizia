@@ -107,4 +107,4 @@ export const useRegistration = () => {
 };
 
 // Export RegistrationData for use in other components
-export type { RegistrationData };
+export type { RegistrationData, FormData };
