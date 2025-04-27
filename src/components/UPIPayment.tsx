@@ -196,7 +196,10 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
 
           <TransactionImageUpload 
             registrationId={registrationId}
-            onImageUploaded={setTransactionImage}
+            onImageUploaded={(imageUrl) => {
+              console.log("Image uploaded successfully:", imageUrl.substring(0, 50) + "...");
+              setTransactionImage(imageUrl);
+            }}
           />
 
           <Button

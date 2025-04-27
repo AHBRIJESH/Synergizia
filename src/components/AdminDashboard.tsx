@@ -40,7 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog";
+} from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -235,7 +235,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
               <Input
                 placeholder="Search by name, email, phone or ID..."
                 value={searchTerm}
-                onChange={handleSearch}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -358,7 +358,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                             <div className="space-y-2">
                               <img 
                                 src={registration.paymentDetails.transactionImage} 
-                                alt="Payment preview"
+                                alt="Payment proof"
                                 className="w-20 h-20 object-cover rounded-md cursor-pointer border border-gray-200"
                                 onLoad={() => console.log(`Image loaded successfully for ${registration.id}`)}
                                 onError={(e) => {
@@ -391,7 +391,9 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                               </Dialog>
                             </div>
                           ) : (
-                            <span className="text-gray-400">No image available</span>
+                            <div className="w-20 h-20 flex items-center justify-center bg-gray-100 rounded-md border border-gray-200">
+                              <span className="text-gray-400 text-xs">No image</span>
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>

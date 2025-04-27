@@ -43,6 +43,8 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64String = e.target?.result as string;
+          console.log("Image converted to base64, length:", base64String.length);
+          console.log("Base64 string starts with:", base64String.substring(0, 50) + "...");
           setPreviewUrl(base64String);
           onImageUploaded(base64String);
           toast.success("Transaction image processed");
@@ -119,6 +121,8 @@ const TransactionImageUpload: React.FC<TransactionImageUploadProps> = ({
               src={previewUrl}
               alt="Transaction preview"
               className="max-h-32 rounded border border-gray-200"
+              onLoad={() => console.log("Preview image loaded successfully")}
+              onError={(e) => console.error("Preview image failed to load:", e)}
             />
           </div>
         )}
