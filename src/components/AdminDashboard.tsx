@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -10,7 +9,7 @@ import {
 } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Download, Search, CheckCircle, XCircle, AlertTriangle, Loader, Trash2 } from "lucide-react";
+import { Download, Search, CheckCircle, XCircle, AlertTriangle, Loader, Trash2, Image } from "lucide-react";
 import { toast } from "./ui/sonner";
 import { Badge } from "./ui/badge";
 import {
@@ -33,9 +32,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 import { RegistrationData } from "@/hooks/useRegistration";
 
-// Define a constant for localStorage key
 const LOCAL_STORAGE_KEY = 'synergizia_registrations';
 
 interface AdminDashboardProps {
@@ -47,7 +53,8 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   useEffect(() => {
     loadRegistrations();
   }, []);
@@ -90,7 +97,6 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 
   const handleExportToCSV = () => {
     try {
-      // Format registrations data for CSV
       const headers = [
         "ID",
         "Name",
@@ -130,7 +136,6 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
         "\n" +
         rows.map((row) => row.map(item => `"${item}"`).join(",")).join("\n");
 
-      // Create a Blob and download link
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -275,6 +280,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                     <TableHead>Amount</TableHead>
                     <TableHead>Payment Status</TableHead>
                     <TableHead>Transaction ID</TableHead>
+                    <TableHead>Image</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -298,6 +304,34 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                       </TableCell>
                       <TableCell className="font-mono text-xs">
                         {registration.paymentDetails.transactionId || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {registration.paymentDetails?.transactionImage ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <Image className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl">
+                              <DialogHeader>
+                                <DialogTitle>Payment Proof</DialogTitle>
+                                <DialogDescription>
+                                  Transaction ID: {registration.paymentDetails.transactionId}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="mt-4">
+                                <img 
+                                  src={registration.paymentDetails.transactionImage} 
+                                  alt="Payment proof"
+                                  className="w-full rounded-lg"
+                                />
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <span className="text-gray-400">No image</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {registration.paymentDetails.paymentStatus === "Pending" && (
