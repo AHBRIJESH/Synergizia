@@ -1,4 +1,3 @@
-
 import React from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+``;
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader } from "lucide-react";
@@ -21,7 +21,11 @@ interface UPIPaymentProps {
   amount: number;
   registrationId: string;
   email: string;
-  onPaymentComplete: (success: boolean, transactionId?: string, transactionImage?: string) => void;
+  onPaymentComplete: (
+    success: boolean,
+    transactionId?: string,
+    transactionImage?: string
+  ) => void;
 }
 
 const UPI_ID = "ahbrijesh2004@okhdfcbank";
@@ -56,7 +60,7 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       // Check if Supabase is configured
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
+
       // Add logging for verification process
       console.log("Starting payment verification process");
       console.log("Registration ID:", registrationId);
@@ -64,21 +68,21 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       console.log("Transaction ID:", transactionId);
       console.log("Transaction image available:", !!transactionImage);
       console.log("Transaction image length:", transactionImage.length);
-      
+
       // If Supabase is not configured, use demo mode
       if (!supabaseUrl || !supabaseAnonKey) {
-        console.log('Using demo mode as Supabase is not configured');
-        
+        console.log("Using demo mode as Supabase is not configured");
+
         toast.success("Registration completed successfully", {
           description: `Since this is running in demo mode, no actual email will be sent to ${email}. In production, a confirmation email would be sent.`,
         });
 
-        navigate("/registration-status", { 
-          state: { 
+        navigate("/registration-status", {
+          state: {
             registrationId,
             email,
-            message: `Your registration has been processed successfully. In a production environment, a confirmation email would be sent to ${email}.` 
-          } 
+            message: `Your registration has been processed successfully. In a production environment, a confirmation email would be sent to ${email}.`,
+          },
         });
 
         onPaymentComplete(true, transactionId, transactionImage);
@@ -100,15 +104,17 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       }
 
       console.log("Response from verifyUPIPayment:", data);
-      
+
       // More detailed response handling
       if (data.demoMode) {
         toast.success("Demo mode: Registration completed", {
-          description: "Since this is running in demo mode, no actual database updates or emails were processed.",
+          description:
+            "Since this is running in demo mode, no actual database updates or emails were processed.",
         });
       } else if (!data.smtpConfigured) {
         toast.warning("Email configuration incomplete", {
-          description: "Your payment was recorded, but email notifications couldn't be sent due to incomplete SMTP configuration.",
+          description:
+            "Your payment was recorded, but email notifications couldn't be sent due to incomplete SMTP configuration.",
         });
       } else if (data.emailStatus === "SENT") {
         toast.success("Payment verification confirmed", {
@@ -127,14 +133,15 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
         });
       }
 
-      navigate("/registration-status", { 
-        state: { 
+      navigate("/registration-status", {
+        state: {
           registrationId,
           email,
-          message: data.emailStatus === "SENT" 
-            ? "Your payment is being verified. You will receive a confirmation email shortly."
-            : "Your payment is being verified. Due to technical limitations, email delivery might be delayed." 
-        } 
+          message:
+            data.emailStatus === "SENT"
+              ? "Your payment is being verified. You will receive a confirmation email shortly."
+              : "Your payment is being verified. Due to technical limitations, email delivery might be delayed.",
+        },
       });
 
       onPaymentComplete(true, transactionId, transactionImage);
@@ -142,18 +149,19 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
       console.error("Payment verification failed:", error);
       // Even if verification fails, we'll still accept the payment for demo purposes
       toast.warning("Verification service unavailable", {
-        description: "Your registration is recorded, but email notification couldn't be sent at this time. Please keep your transaction details safe.",
+        description:
+          "Your registration is recorded, but email notification couldn't be sent at this time. Please keep your transaction details safe.",
       });
-      
+
       // In demo mode, we still complete the registration
       onPaymentComplete(true, transactionId, transactionImage);
-      
-      navigate("/registration-status", { 
-        state: { 
+
+      navigate("/registration-status", {
+        state: {
           registrationId,
           email,
-          message: `Your registration has been processed. Due to technical limitations with email delivery, please keep your transaction ID (${transactionId}) safe for reference.` 
-        } 
+          message: `Your registration has been processed. Due to technical limitations with email delivery, please keep your transaction ID (${transactionId}) safe for reference.`,
+        },
       });
     } finally {
       setIsVerifying(false);
@@ -194,10 +202,13 @@ const UPIPayment: React.FC<UPIPaymentProps> = ({
             </p>
           </div>
 
-          <TransactionImageUpload 
+          <TransactionImageUpload
             registrationId={registrationId}
             onImageUploaded={(imageUrl) => {
-              console.log("Image uploaded successfully:", imageUrl.substring(0, 50) + "...");
+              console.log(
+                "Image uploaded successfully:",
+                imageUrl.substring(0, 50) + "..."
+              );
               setTransactionImage(imageUrl);
             }}
           />

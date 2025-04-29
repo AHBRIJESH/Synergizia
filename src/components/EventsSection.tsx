@@ -47,11 +47,11 @@ const events: Event[] = [
   },
   {
     id: "TECH04",
-    title: "Paper Presentation",
+    title: "Paper Presentation (IoT as Smart Cities)",
     type: "technical",
     timeSlot: "9:30 – 10:30 AM",
     description:
-      "Present your research papers and innovative ideas to a panel of expert judges and audience.",
+      "Present your research papers and innovative ideas on IoT implementation on cities to a panel of expert judges and audience.",
     icon: <FileText className="text-synergizia-purple" />,
   },
   {
