@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from "@/components/ui/sonner";
 import { useRegistrationForm, FormData, RegistrationData, initialForm } from './useRegistrationForm';
@@ -21,13 +20,8 @@ export const useRegistration = () => {
   } = useRegistrationValidation();
 
   const calculateTotalAmount = (data: FormData = formData): number => {
-    let total = data.selectedEvents.length > 0 ? 100 : 0;
-    if (data.lunchOption === "veg") {
-      total += 50;
-    } else if (data.lunchOption === "nonveg") {
-      total += 60;
-    }
-    return total;
+    // Fixed total price of 150
+    return 150;
   };
 
   const handleProceedToPayment = async (e: React.FormEvent) => {
