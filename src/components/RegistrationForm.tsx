@@ -212,11 +212,11 @@ const RegistrationForm = () => {
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="veg" id="lunch-veg" />
-                  <Label htmlFor="lunch-veg">Vegetarian (₹50)</Label>
+                  <Label htmlFor="lunch-veg">Vegetarian</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="nonveg" id="lunch-nonveg" />
-                  <Label htmlFor="lunch-nonveg">Non-Vegetarian (₹60)</Label>
+                  <Label htmlFor="lunch-nonveg">Non-Vegetarian</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="" id="lunch-none" />
@@ -235,10 +235,6 @@ const RegistrationForm = () => {
             </div>
             <div className="text-right">
               <p className="text-lg font-bold">Total: ₹{calculateTotalAmount()}</p>
-              <p className="text-sm text-gray-500">
-                Events: ₹{formData.selectedEvents.length > 0 ? 100 : 0} | 
-                Lunch: ₹{formData.lunchOption === "veg" ? 50 : (formData.lunchOption === "nonveg" ? 60 : 0)}
-              </p>
             </div>
           </div>
 
