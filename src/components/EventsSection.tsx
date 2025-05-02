@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import EventCard, { Event } from "./EventCard";
 import AnimationWrapper from "./AnimationWrapper";
@@ -47,11 +48,11 @@ const events: Event[] = [
   },
   {
     id: "TECH04",
-    title: "Paper Presentation (IoT as Smart Cities)",
+    title: "Paper Presentation (IoT in Smart Cities)",
     type: "technical",
     timeSlot: "9:30 – 10:30 AM",
     description:
-      "Present your research papers and innovative ideas on IoT implementation on cities to a panel of expert judges and audience.",
+      "Present your research papers and innovative ideas on IoT implementation in smart cities to a panel of expert judges and audience.",
     icon: <FileText className="text-synergizia-purple" />,
   },
   {
