@@ -28,7 +28,7 @@ interface UPIPaymentProps {
   ) => void;
 }
 
-const UPI_ID = "ahbrijesh2004@okhdfcbank";
+const UPI_ID = "karthikakamaraj.93@oksbi";
 
 const UPIPayment: React.FC<UPIPaymentProps> = ({
   amount,
