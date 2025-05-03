@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import React, { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Card,
   CardContent,
@@ -15,24 +14,24 @@ import { Label } from "@/components/ui/label";
 import { Lock } from "lucide-react";
 
 // Hardcoded credentials as per requirements
-const ADMIN_USERNAME = "Brijesh";
-const ADMIN_PASSWORD = "14619862";
+const ADMIN_USERNAME = "Synergizia_1234";
+const ADMIN_PASSWORD = "Rgce@2119";
 
 interface AdminLoginProps {
   onLogin: () => void;
 }
 
 const AdminLogin = ({ onLogin }: AdminLoginProps) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     // Simulate network delay
     setTimeout(() => {
@@ -43,7 +42,7 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
         });
         onLogin();
       } else {
-        setError('Invalid username or password');
+        setError("Invalid username or password");
         toast({
           variant: "destructive",
           title: "Login failed",
