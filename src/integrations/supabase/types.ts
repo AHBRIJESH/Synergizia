@@ -85,40 +85,58 @@ export type Database = {
       }
       registrations: {
         Row: {
+          college: string | null
           created_at: string | null
+          custom_department: string | null
+          department: string | null
           email: string
           full_name: string
           id: string
+          lunch_option: string | null
           payment_details: Json | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           payment_timestamp: string | null
           payment_verified: boolean | null
+          phone: string | null
           selected_events: string[]
           updated_at: string | null
+          year: string | null
         }
         Insert: {
+          college?: string | null
           created_at?: string | null
+          custom_department?: string | null
+          department?: string | null
           email: string
           full_name: string
           id: string
+          lunch_option?: string | null
           payment_details?: Json | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           payment_timestamp?: string | null
           payment_verified?: boolean | null
+          phone?: string | null
           selected_events?: string[]
           updated_at?: string | null
+          year?: string | null
         }
         Update: {
+          college?: string | null
           created_at?: string | null
+          custom_department?: string | null
+          department?: string | null
           email?: string
           full_name?: string
           id?: string
+          lunch_option?: string | null
           payment_details?: Json | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           payment_timestamp?: string | null
           payment_verified?: boolean | null
+          phone?: string | null
           selected_events?: string[]
           updated_at?: string | null
+          year?: string | null
         }
         Relationships: []
       }

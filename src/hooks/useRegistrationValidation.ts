@@ -1,6 +1,8 @@
+
 import { useState } from "react";
 import { FormData } from './useRegistrationForm';
 import { getRegistrations } from './useRegistrationStorage';
+import { supabase } from '@/lib/supabase';
 
 export const useRegistrationValidation = () => {
   const validateEmailFormat = (email: string): boolean => {
@@ -14,6 +16,18 @@ export const useRegistrationValidation = () => {
   };
 
   const checkIfEmailExists = async (email: string): Promise<boolean> => {
+    // First check database
+    const { data, error } = await supabase
+      .from('registrations')
+      .select('email')
+      .eq('email', email.toLowerCase())
+      .limit(1);
+    
+    if (data && data.length > 0) {
+      return true;
+    }
+    
+    // Then fallback to local storage
     const registrations = await getRegistrations();
     return registrations.some((registration) => registration.email.toLowerCase() === email.toLowerCase());
   };

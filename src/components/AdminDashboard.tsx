@@ -9,7 +9,7 @@ import {
 } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Download, Search, CheckCircle, XCircle, AlertTriangle, Loader } from "lucide-react";
+import { Download, Search, CheckCircle, XCircle, AlertTriangle, Loader, RefreshCw } from "lucide-react";
 import { toast } from "./ui/sonner";
 import { Badge } from "./ui/badge";
 import {
@@ -62,39 +62,80 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     loadRegistrations();
   }, []);
 
-  const loadRegistrations = () => {
+  const loadRegistrations = async () => {
     setLoading(true);
     try {
-      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const data = storedData ? JSON.parse(storedData) : [];
-      
-      const processedData = data.map((registration: RegistrationData) => {
-        if (registration.paymentDetails?.transactionImage) {
-          const isBase64 = registration.paymentDetails.transactionImage.startsWith('data:');
-          const isSupabaseUrl = registration.paymentDetails.transactionImage.includes('storage.supabase');
-          
-          if (!isBase64 && !isSupabaseUrl) {
-            const { data: { publicUrl } } = supabase.storage
-              .from('payment-proofs')
-              .getPublicUrl(`${registration.id}/transaction.jpg`);
-            
-            registration.paymentDetails.transactionImage = publicUrl || '/placeholder.svg';
-          }
+      // First try to load from Supabase
+      const { data: supabaseData, error: supabaseError } = await supabase
+        .from('registrations')
+        .select('*')
+        .order('registration_date', { ascending: false });
+
+      if (supabaseError) {
+        throw supabaseError;
+      }
+
+      if (supabaseData && supabaseData.length > 0) {
+        // Transform the data to match our application's expected format
+        const transformedData = supabaseData.map(reg => {
+          return {
+            id: reg.id,
+            fullName: reg.full_name,
+            email: reg.email,
+            phone: reg.phone || "",
+            college: reg.college || "",
+            department: reg.department || "",
+            customDepartment: reg.custom_department || "",
+            year: reg.year || "",
+            selectedEvents: reg.selected_events || [],
+            lunchOption: reg.lunch_option || "",
+            registrationDate: reg.registration_date || reg.created_at,
+            paymentDetails: reg.payment_details || {
+              amount: 150,
+              lunchOption: reg.lunch_option || "",
+              paymentMethod: "on-site",
+              paymentStatus: reg.payment_status || "Pending"
+            }
+          } as RegistrationData;
+        });
+
+        setRegistrations(transformedData);
+        toast.success(`Loaded ${transformedData.length} registrations from database`);
+      } else {
+        // Fallback to local storage
+        const storedData = localStorage.getItem('synergizia_registrations');
+        const data = storedData ? JSON.parse(storedData) : [];
+        
+        if (data.length > 0) {
+          setRegistrations(data);
+          toast.info(`Loaded ${data.length} registrations from local storage`);
+        } else {
+          setRegistrations([]);
+          toast.info("No registrations found");
         }
-        return registration;
-      });
-      
-      setRegistrations(processedData);
-      toast.success(`Loaded ${processedData.length} registrations`);
+      }
     } catch (error) {
-      toast.error("Failed to load registrations");
       console.error("Error loading registrations:", error);
+      
+      // Fallback to local storage
+      try {
+        const storedData = localStorage.getItem('synergizia_registrations');
+        const localData = storedData ? JSON.parse(storedData) : [];
+        
+        if (localData.length > 0) {
+          setRegistrations(localData);
+          toast.warning(`Failed to load from database. Using ${localData.length} local registrations`);
+        } else {
+          toast.error("Failed to load registrations from any source");
+        }
+      } catch (localError) {
+        toast.error("Failed to load registrations");
+      }
     } finally {
       setLoading(false);
     }
@@ -115,10 +156,26 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     );
   });
 
-  const handleClearRegistrations = () => {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-    setRegistrations([]);
-    toast.success("All registrations have been cleared");
+  const handleClearRegistrations = async () => {
+    try {
+      // First remove from database if possible
+      const { error } = await supabase
+        .from('registrations')
+        .delete()
+        .neq('id', 'dummy-id'); // Delete all records
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Also clear local storage
+      localStorage.removeItem('synergizia_registrations');
+      setRegistrations([]);
+      toast.success("All registrations have been cleared");
+    } catch (error) {
+      console.error("Error clearing registrations:", error);
+      toast.error("Failed to clear registrations from database");
+    }
   };
 
   const handleExportToCSV = () => {
@@ -178,9 +235,26 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     }
   };
 
-  const updateRegistrationStatus = (id: string, status: "Verified" | "Rejected") => {
+  const updateRegistrationStatus = async (id: string, status: "Verified" | "Rejected") => {
     setProcessingId(id);
     try {
+      // Update in Supabase
+      const { error: dbError } = await supabase
+        .from('registrations')
+        .update({ 
+          'payment_status': status.toLowerCase(),
+          'payment_details': {
+            ...registrations.find(r => r.id === id)?.paymentDetails,
+            paymentStatus: status
+          }
+        })
+        .eq('id', id);
+
+      if (dbError) {
+        throw dbError;
+      }
+      
+      // Also update in local state
       const updatedRegistrations = registrations.map(reg => {
         if (reg.id === id) {
           return {
@@ -194,7 +268,8 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
         return reg;
       });
       
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedRegistrations));
+      // Update local storage as well
+      localStorage.setItem('synergizia_registrations', JSON.stringify(updatedRegistrations));
       setRegistrations(updatedRegistrations);
       
       toast.success(`Payment ${status.toLowerCase()} successfully`);
@@ -240,7 +315,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
               <Input
                 placeholder="Search by name, email, phone or ID..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearch}
                 className="pl-10"
               />
             </div>
@@ -251,6 +326,14 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                 disabled={filteredRegistrations.length === 0}
               >
                 <Download className="w-4 h-4 mr-2" /> Export CSV
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={loadRegistrations}
+                disabled={loading}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
               </Button>
               
               <AlertDialog>
@@ -266,7 +349,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action will permanently delete all registration data. This action cannot be undone.
+                      This action will permanently delete all registration data from both the database and local storage. This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -312,140 +395,135 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRegistrations.map((registration) => {
-                    console.log(`Rendering registration ${registration.id}`);
-                    console.log(`Transaction image available: ${!!registration.paymentDetails?.transactionImage}`);
-                    
-                    return (
-                      <TableRow key={registration.id}>
-                        <TableCell className="font-mono text-xs">
-                          {registration.id}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {registration.fullName}
-                        </TableCell>
-                        <TableCell>{registration.email}</TableCell>
-                        <TableCell>{registration.phone}</TableCell>
-                        <TableCell>
-                          {new Date(registration.registrationDate).toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <div className="flex flex-wrap gap-1">
-                                  {registration.selectedEvents.map((event, index) => (
-                                    <Badge 
-                                      key={index} 
-                                      variant="outline" 
-                                      className="text-xs"
-                                    >
-                                      {event}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="space-y-1">
-                                  {registration.selectedEvents.map((event, index) => (
-                                    <div key={index}>{event}</div>
-                                  ))}
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </TableCell>
-                        <TableCell>₹{registration.paymentDetails.amount}</TableCell>
-                        <TableCell>
-                          {getPaymentStatusBadge(registration.paymentDetails.paymentStatus)}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {registration.paymentDetails.transactionId || "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          {registration.paymentDetails?.transactionImage ? (
-                            <div className="space-y-2">
-                              <img 
-                                src={registration.paymentDetails.transactionImage} 
-                                alt="Payment proof"
-                                className="w-20 h-20 object-cover rounded-md cursor-pointer border border-gray-200"
-                                onError={(e) => {
-                                  console.error(`Image failed to load for ${registration.id}:`, e);
-                                  const img = e.target as HTMLImageElement;
-                                  img.src = '/placeholder.svg'; // Fallback to a placeholder image
-                                }}
-                              />
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" size="sm">
-                                    View Full
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-3xl">
-                                  <DialogHeader>
-                                    <DialogTitle>Payment Screenshot</DialogTitle>
-                                    <DialogDescription>
-                                      Transaction ID: {registration.paymentDetails.transactionId}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <ScrollArea className="h-[500px] w-full rounded-md border p-4">
-                                    <img 
-                                      src={registration.paymentDetails.transactionImage} 
-                                      alt="Full Payment proof"
-                                      className="w-full rounded-lg"
-                                      onError={(e) => {
-                                        console.error(`Full image failed to load for ${registration.id}:`, e);
-                                        const img = e.target as HTMLImageElement;
-                                        img.src = '/placeholder.svg'; // Fallback to a placeholder image
-                                      }}
-                                    />
-                                  </ScrollArea>
-                                </DialogContent>
-                              </Dialog>
-                            </div>
-                          ) : (
-                            <div className="w-20 h-20 flex items-center justify-center bg-gray-100 rounded-md border border-gray-200">
-                              <span className="text-gray-400 text-xs">No image</span>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {registration.paymentDetails.paymentStatus === "Pending" && (
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="bg-green-50 hover:bg-green-100 text-green-700"
-                                onClick={() => updateRegistrationStatus(registration.id, "Verified")}
-                                disabled={processingId === registration.id}
-                              >
-                                {processingId === registration.id ? (
-                                  <Loader className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <CheckCircle className="w-3 h-3" />
-                                )} 
-                                Verify
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="bg-red-50 hover:bg-red-100 text-red-700"
-                                onClick={() => updateRegistrationStatus(registration.id, "Rejected")}
-                                disabled={processingId === registration.id}
-                              >
-                                {processingId === registration.id ? (
-                                  <Loader className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <XCircle className="w-3 h-3" />
-                                )} 
-                                Reject
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {filteredRegistrations.map((registration) => (
+                    <TableRow key={registration.id}>
+                      <TableCell className="font-mono text-xs">
+                        {registration.id}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {registration.fullName}
+                      </TableCell>
+                      <TableCell>{registration.email}</TableCell>
+                      <TableCell>{registration.phone}</TableCell>
+                      <TableCell>
+                        {new Date(registration.registrationDate).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <div className="flex flex-wrap gap-1">
+                                {registration.selectedEvents.map((event, index) => (
+                                  <Badge 
+                                    key={index} 
+                                    variant="outline" 
+                                    className="text-xs"
+                                  >
+                                    {event}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="space-y-1">
+                                {registration.selectedEvents.map((event, index) => (
+                                  <div key={index}>{event}</div>
+                                ))}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell>₹{registration.paymentDetails.amount}</TableCell>
+                      <TableCell>
+                        {getPaymentStatusBadge(registration.paymentDetails.paymentStatus)}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {registration.paymentDetails.transactionId || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {registration.paymentDetails?.transactionImage ? (
+                          <div className="space-y-2">
+                            <img 
+                              src={registration.paymentDetails.transactionImage} 
+                              alt="Payment proof"
+                              className="w-20 h-20 object-cover rounded-md cursor-pointer border border-gray-200"
+                              onError={(e) => {
+                                console.error(`Image failed to load for ${registration.id}:`, e);
+                                const img = e.target as HTMLImageElement;
+                                img.src = '/placeholder.svg'; // Fallback to a placeholder image
+                              }}
+                            />
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  View Full
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-3xl">
+                                <DialogHeader>
+                                  <DialogTitle>Payment Screenshot</DialogTitle>
+                                  <DialogDescription>
+                                    Transaction ID: {registration.paymentDetails.transactionId}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <ScrollArea className="h-[500px] w-full rounded-md border p-4">
+                                  <img 
+                                    src={registration.paymentDetails.transactionImage} 
+                                    alt="Full Payment proof"
+                                    className="w-full rounded-lg"
+                                    onError={(e) => {
+                                      console.error(`Full image failed to load for ${registration.id}:`, e);
+                                      const img = e.target as HTMLImageElement;
+                                      img.src = '/placeholder.svg'; // Fallback to a placeholder image
+                                    }}
+                                  />
+                                </ScrollArea>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        ) : (
+                          <div className="w-20 h-20 flex items-center justify-center bg-gray-100 rounded-md border border-gray-200">
+                            <span className="text-gray-400 text-xs">No image</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {registration.paymentDetails.paymentStatus === "Pending" && (
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="bg-green-50 hover:bg-green-100 text-green-700"
+                              onClick={() => updateRegistrationStatus(registration.id, "Verified")}
+                              disabled={processingId === registration.id}
+                            >
+                              {processingId === registration.id ? (
+                                <Loader className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <CheckCircle className="w-3 h-3" />
+                              )} 
+                              Verify
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="bg-red-50 hover:bg-red-100 text-red-700"
+                              onClick={() => updateRegistrationStatus(registration.id, "Rejected")}
+                              disabled={processingId === registration.id}
+                            >
+                              {processingId === registration.id ? (
+                                <Loader className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <XCircle className="w-3 h-3" />
+                              )} 
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>

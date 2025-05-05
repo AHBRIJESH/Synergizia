@@ -4,8 +4,9 @@ import { toast } from "@/components/ui/sonner";
 import { useNavigate } from 'react-router-dom';
 import { useRegistrationForm, FormData, RegistrationData, initialForm } from './useRegistrationForm';
 import { useRegistrationValidation } from './useRegistrationValidation';
-import { saveRegistration } from './useRegistrationStorage';
+import { saveRegistration, getRegistrationById } from './useRegistrationStorage';
 import { callEdgeFunction } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export const useRegistration = () => {
   const navigate = useNavigate();
@@ -62,7 +63,35 @@ export const useRegistration = () => {
         }
       };
 
-      // Save registration locally
+      // Save to Supabase
+      const { error: dbError } = await supabase
+        .from('registrations')
+        .insert({
+          id: registration.id,
+          full_name: registration.fullName,
+          email: registration.email,
+          phone: registration.phone,
+          college: registration.college,
+          department: registration.department,
+          custom_department: registration.customDepartment,
+          year: registration.year,
+          selected_events: registration.selectedEvents,
+          lunch_option: registration.lunchOption,
+          payment_details: registration.paymentDetails,
+          registration_date: registration.registrationDate
+        });
+        
+      if (dbError) {
+        console.error('Database error:', dbError);
+        setRegistrationError(`Database Error: ${dbError.message}`);
+        toast.error("Registration Error", {
+          description: `Failed to save registration: ${dbError.message}`,
+        });
+        hasError = true;
+        return;
+      }
+      
+      // Also save registration locally as backup
       saveRegistration(registration);
       
       // Call the send email function
