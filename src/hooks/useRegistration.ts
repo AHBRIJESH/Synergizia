@@ -32,6 +32,9 @@ export const useRegistration = () => {
     setIsSubmitting(true);
     setRegistrationError(null);
 
+    // Create a variable to track if we need to reset the state due to an error
+    let hasError = false;
+
     try {
       const validationError = await validateForm(formData);
       if (validationError) {
@@ -39,7 +42,7 @@ export const useRegistration = () => {
         toast.error("Validation Error", {
           description: validationError,
         });
-        setIsSubmitting(false);
+        hasError = true;
         return;
       }
 
@@ -84,7 +87,7 @@ export const useRegistration = () => {
         description: `Your registration has been received. Please pay ₹${calculateTotalAmount()} at the venue.`,
       });
 
-      // Redirect to confirmation page
+      // Redirect to confirmation page with all registration data
       setTimeout(() => {
         navigate('/registration-status', {
           state: {
@@ -94,10 +97,11 @@ export const useRegistration = () => {
           }
         });
         
-        // Reset form after redirect
+        // Reset everything after successful redirect
         setFormData(initialForm);
         setRegistrationSuccess(false);
         setIsSubmitting(false);
+        setCurrentRegistrationId("");
       }, 2000);
       
     } catch (error) {
@@ -106,7 +110,12 @@ export const useRegistration = () => {
       toast.error("Registration Error", {
         description: "An unexpected error occurred. Please try again.",
       });
-      setIsSubmitting(false);
+      hasError = true;
+    } finally {
+      // If there was an error, always reset the submission state
+      if (hasError) {
+        setIsSubmitting(false);
+      }
     }
   };
 
