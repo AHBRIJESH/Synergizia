@@ -98,6 +98,7 @@ export type Database = {
           payment_timestamp: string | null
           payment_verified: boolean | null
           phone: string | null
+          registration_date: string | null
           selected_events: string[]
           updated_at: string | null
           year: string | null
@@ -116,6 +117,7 @@ export type Database = {
           payment_timestamp?: string | null
           payment_verified?: boolean | null
           phone?: string | null
+          registration_date?: string | null
           selected_events?: string[]
           updated_at?: string | null
           year?: string | null
@@ -134,6 +136,7 @@ export type Database = {
           payment_timestamp?: string | null
           payment_verified?: boolean | null
           phone?: string | null
+          registration_date?: string | null
           selected_events?: string[]
           updated_at?: string | null
           year?: string | null
