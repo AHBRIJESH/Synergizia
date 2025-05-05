@@ -1,15 +1,18 @@
+
 import { useState } from 'react';
 import { toast } from "@/components/ui/sonner";
+import { useNavigate } from 'react-router-dom';
 import { useRegistrationForm, FormData, RegistrationData, initialForm } from './useRegistrationForm';
 import { useRegistrationValidation } from './useRegistrationValidation';
-import { saveRegistration, getRegistrations } from './useRegistrationStorage';
+import { saveRegistration } from './useRegistrationStorage';
+import { callEdgeFunction } from '@/lib/supabase';
 
 export const useRegistration = () => {
+  const navigate = useNavigate();
   const { formData, handleChange, handleSelectChange, setFormData } = useRegistrationForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [registrationSuccess, setRegistrationSuccess] = useState<boolean>(false);
-  const [step, setStep] = useState<"details" | "payment">("details");
   const [currentRegistrationId, setCurrentRegistrationId] = useState<string>("");
 
   const { 
@@ -24,7 +27,7 @@ export const useRegistration = () => {
     return 150;
   };
 
-  const handleProceedToPayment = async (e: React.FormEvent) => {
+  const handleSubmitRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setRegistrationError(null);
@@ -42,54 +45,66 @@ export const useRegistration = () => {
 
       const registrationId = `REG-${Date.now()}`;
       setCurrentRegistrationId(registrationId);
-      setStep("payment");
-    } catch (error) {
-      console.error("Error during validation:", error);
-      setRegistrationError("An unexpected error occurred. Please try again.");
-      toast.error("Error", {
-        description: "An unexpected error occurred. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const completeRegistration = (transactionId: string, transactionImage?: string) => {
-    try {
+      
+      // Create registration object
       const registration: RegistrationData = {
         ...formData,
-        id: currentRegistrationId,
+        id: registrationId,
         registrationDate: new Date().toISOString(),
         paymentDetails: {
           amount: calculateTotalAmount(),
           lunchOption: formData.lunchOption,
-          paymentMethod: "upi",
-          paymentStatus: "Verified",
-          transactionId: transactionId,
-          transactionImage: transactionImage
+          paymentMethod: "on-site",
+          paymentStatus: "Pending",
         }
       };
 
+      // Save registration locally
       saveRegistration(registration);
-      setRegistrationSuccess(true);
-
-      toast.success("Transaction Verified Successfully!", {
-        description: `Your payment has been recorded and your registration is confirmed. A confirmation email will be sent to ${formData.email} shortly.`,
+      
+      // Call the send email function
+      const { data, error } = await callEdgeFunction('verify-upi-payment', {
+        email: formData.email,
+        registrationId: registrationId,
+        transactionId: 'pending-payment-on-site',
       });
 
+      if (error) {
+        console.error('Email sending failed:', error);
+        toast.error("Email Error", {
+          description: "Registration successful but we couldn't send an email confirmation. Please take a screenshot for your records.",
+        });
+      } else {
+        console.log('Email sending response:', data);
+      }
+
+      // Set success state
+      setRegistrationSuccess(true);
+      toast.success("Registration Successful!", {
+        description: `Your registration has been received. Please pay ₹${calculateTotalAmount()} at the venue.`,
+      });
+
+      // Redirect to confirmation page
       setTimeout(() => {
+        navigate('/registration-status', {
+          state: {
+            registrationId: registrationId,
+            email: formData.email,
+            message: "Your registration has been received. A confirmation email has been sent to your email address. Please pay the registration fee of ₹150 at the venue."
+          }
+        });
+        
+        // Reset form after redirect
         setFormData(initialForm);
         setRegistrationSuccess(false);
-        setStep("details");
         setIsSubmitting(false);
-      }, 3000);
+      }, 2000);
+      
     } catch (error) {
-      setRegistrationError(
-        "There was an error with your registration. Please try again."
-      );
-      toast.error("Registration Failed", {
-        description:
-          "There was an error with your registration. Please try again.",
+      console.error("Error during registration:", error);
+      setRegistrationError("An unexpected error occurred. Please try again.");
+      toast.error("Registration Error", {
+        description: "An unexpected error occurred. Please try again.",
       });
       setIsSubmitting(false);
     }
@@ -100,14 +115,11 @@ export const useRegistration = () => {
     isSubmitting,
     registrationError,
     registrationSuccess,
-    step,
     currentRegistrationId,
     handleChange,
     handleSelectChange,
     calculateTotalAmount,
-    handleProceedToPayment,
-    completeRegistration,
-    setStep,
+    handleSubmitRegistration,
     setIsSubmitting,
     initialForm
   };

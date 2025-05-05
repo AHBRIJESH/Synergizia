@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +21,9 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle } from "lucide-react";
-import UPIPayment from "@/components/UPIPayment";
 import { useRegistration } from "@/hooks/useRegistration";
-import EventsSelection from './form/EventsSelection';
-import RegistrationSummary from './form/RegistrationSummary';
+import EventsSelection from "./form/EventsSelection";
+import RegistrationSummary from "./form/RegistrationSummary";
 
 const timeSlots: Record<string, string[]> = {
   "9:30 – 10:30 AM": ["Paper Presentation", "JAM"],
@@ -39,16 +38,11 @@ const RegistrationForm = () => {
     isSubmitting,
     registrationError,
     registrationSuccess,
-    step,
-    currentRegistrationId,
     handleChange,
     handleSelectChange,
     calculateTotalAmount,
-    handleProceedToPayment,
-    completeRegistration,
-    setStep,
-    setIsSubmitting,
-    initialForm
+    handleSubmitRegistration,
+    initialForm,
   } = useRegistration();
 
   const isEventDisabled = (eventTitle: string): boolean => {
@@ -77,17 +71,21 @@ const RegistrationForm = () => {
 
   const handleEventChange = (eventTitle: string, checked: boolean) => {
     if (checked) {
-      handleSelectChange('selectedEvents', [...formData.selectedEvents, eventTitle]);
+      handleSelectChange("selectedEvents", [
+        ...formData.selectedEvents,
+        eventTitle,
+      ]);
     } else {
-      handleSelectChange('selectedEvents', 
-        formData.selectedEvents.filter(event => event !== eventTitle)
+      handleSelectChange(
+        "selectedEvents",
+        formData.selectedEvents.filter((event) => event !== eventTitle)
       );
     }
   };
 
-  const renderPersonalDetailsForm = () => {
+  const renderRegistrationForm = () => {
     return (
-      <form onSubmit={handleProceedToPayment} className="space-y-6">
+      <form onSubmit={handleSubmitRegistration} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="space-y-2">
@@ -116,18 +114,30 @@ const RegistrationForm = () => {
               <Label htmlFor="department">Department *</Label>
               <Select
                 value={formData.department}
-                onValueChange={(value) => handleSelectChange("department", value)}
+                onValueChange={(value) =>
+                  handleSelectChange("department", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="computer_science">Computer Science</SelectItem>
-                    <SelectItem value="information_technology">Information Technology</SelectItem>
-                    <SelectItem value="electronics">Electronics & Communication</SelectItem>
-                    <SelectItem value="electrical">Electrical Engineering</SelectItem>
-                    <SelectItem value="mechanical">Mechanical Engineering</SelectItem>
+                    <SelectItem value="computer_science">
+                      Computer Science
+                    </SelectItem>
+                    <SelectItem value="information_technology">
+                      Information Technology
+                    </SelectItem>
+                    <SelectItem value="electronics">
+                      Electronics & Communication
+                    </SelectItem>
+                    <SelectItem value="electrical">
+                      Electrical Engineering
+                    </SelectItem>
+                    <SelectItem value="mechanical">
+                      Mechanical Engineering
+                    </SelectItem>
                     <SelectItem value="civil">Civil Engineering</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectGroup>
@@ -202,12 +212,14 @@ const RegistrationForm = () => {
               timeSlots={timeSlots}
               isEventDisabled={isEventDisabled}
             />
-            
+
             <div className="space-y-3">
               <Label>Lunch Option</Label>
-              <RadioGroup 
+              <RadioGroup
                 value={formData.lunchOption}
-                onValueChange={(value) => handleSelectChange("lunchOption", value)}
+                onValueChange={(value) =>
+                  handleSelectChange("lunchOption", value)
+                }
                 className="flex flex-col space-y-2"
               >
                 <div className="flex items-center space-x-2">
@@ -228,13 +240,27 @@ const RegistrationForm = () => {
         </div>
 
         <div className="pt-4 border-t border-gray-200">
+          <Alert className="mb-4 bg-blue-50 border-blue-200 text-blue-800">
+            <AlertDescription>
+              <p className="font-medium">Important Payment Information:</p>
+              <p>
+                The registration fee is ₹150, to be paid on-site at the event
+                registration desk. A confirmation email will be sent to your
+                registered email address.
+              </p>
+            </AlertDescription>
+          </Alert>
           <div className="flex justify-between items-center mb-4">
             <div>
               <p className="text-lg font-semibold">Registration Summary</p>
-              <p className="text-sm text-gray-500">Events and lunch selection</p>
+              <p className="text-sm text-gray-500">
+                Events and lunch selection
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-bold">Total: ₹{calculateTotalAmount()}</p>
+              <p className="text-lg font-bold">
+                Total: ₹{calculateTotalAmount()}
+              </p>
             </div>
           </div>
 
@@ -243,45 +269,10 @@ const RegistrationForm = () => {
             className="w-full bg-synergizia-purple hover:bg-synergizia-purple-dark"
             disabled={isSubmitting || formData.selectedEvents.length === 0}
           >
-            Proceed to Payment
+            {isSubmitting ? "Registering..." : "Register Now"}
           </Button>
         </div>
       </form>
-    );
-  };
-
-  const renderPaymentForm = () => {
-    return (
-      <div className="space-y-6">
-        <RegistrationSummary
-          email={formData.email}
-          selectedEvents={formData.selectedEvents}
-          lunchOption={formData.lunchOption}
-          calculateTotalAmount={calculateTotalAmount}
-        />
-
-        <UPIPayment
-          amount={calculateTotalAmount()}
-          registrationId={currentRegistrationId}
-          email={formData.email}
-          onPaymentComplete={(success) => {
-            if (success) {
-              completeRegistration("PAID-VIA-UPI");
-            }
-          }}
-        />
-
-        <div className="flex flex-col sm:flex-row gap-3 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setStep("details")}
-            className="flex-1"
-          >
-            Back to Details
-          </Button>
-        </div>
-      </div>
     );
   };
 
@@ -293,23 +284,17 @@ const RegistrationForm = () => {
         </h2>
         <div className="w-20 h-1 bg-synergizia-gold mx-auto mb-6"></div>
         <p className="text-center text-gray-600 max-w-2xl mx-auto mb-12">
-          Secure your spot at SYNERGIZIA25 by filling out the registration form below. 
-          Please note that you cannot register for events happening at the same time.
+          Secure your spot at SYNERGIZIA25 by filling out the registration form
+          below. Please note that you cannot register for events happening at
+          the same time.
         </p>
 
         <Card className="max-w-2xl mx-auto bg-white">
           <CardHeader>
             <CardTitle>Event Registration</CardTitle>
-            <CardDescription>Fill in your details to register for the symposium</CardDescription>
-            
-            <div className="flex items-center mt-4">
-              <div className={`flex-1 pb-2 border-b-2 ${step === "details" ? "border-synergizia-purple text-synergizia-purple font-medium" : "border-gray-200 text-gray-400"}`}>
-                1. Personal Details
-              </div>
-              <div className={`flex-1 pb-2 border-b-2 ${step === "payment" ? "border-synergizia-purple text-synergizia-purple font-medium" : "border-gray-200 text-gray-400"}`}>
-                2. Payment
-              </div>
-            </div>
+            <CardDescription>
+              Fill in your details to register for the symposium
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {registrationError && (
@@ -323,13 +308,14 @@ const RegistrationForm = () => {
               <Alert className="mb-6 bg-green-50 border-green-200 text-green-800">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription>
-                  Registration successful! Your payment has been verified and your spot is confirmed.
-                  You will receive a confirmation email shortly.
+                  Registration successful! A confirmation email has been sent to
+                  your email address. Please pay the registration fee of ₹150 at
+                  the venue.
                 </AlertDescription>
               </Alert>
             )}
 
-            {step === "details" ? renderPersonalDetailsForm() : renderPaymentForm()}
+            {renderRegistrationForm()}
           </CardContent>
         </Card>
       </div>
